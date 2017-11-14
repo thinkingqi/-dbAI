@@ -9,11 +9,12 @@ https://docs.djangoproject.com/en/1.10/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.10/ref/settings/
 """
+from __future__ import absolute_import
 import os
 import djcelery
 from kombu import Queue,Exchange
 djcelery.setup_loader()
-BROKER_URL = 'redis://127.0.0.1:6379/0'
+BROKER_URL = 'redis://192.168.46.105:6379/0'
 CELERYBEAT_SCHEDULER = 'djcelery.schedulers.DatabaseScheduler'
 CELERY_IMPORTS = ("myapp.tasks","myapp.include.scheduled","myapp.include.mon")
 CELERY_QUEUES = (
@@ -121,10 +122,14 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'django',
-        'USER': 'chang',
-        'PASSWORD': 'chang',
-        'HOST': '127.0.0.1',
+        'USER': 'qihengshan',
+        'PASSWORD': 'qihengshan',
+        'HOST': '192.168.46.105',
         'PORT': '3306',
+        'OPTIONS': {
+            #'init_command': 'SET default_storage_engine=INNODB',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+        }
     }
 }
 

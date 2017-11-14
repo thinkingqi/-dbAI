@@ -19,8 +19,6 @@ from django.contrib import admin
 from django.conf.urls import include
 from django.conf import settings
 from myapp import views as myapp_view
-# add
-from django.views.static import serve
 
 urlpatterns = (
     url(r'^$', myapp_view.index, name='index'),
@@ -56,6 +54,6 @@ urlpatterns = (
     url(r'^monitor/', include('monitor.urls')),
     url(r'^passforget/', include('passforget.urls')),
     url(r'^blacklist/', include('blacklist.urls')),
-    url(r'^site_media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+    url(r'^site_media/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT}),
 )
 

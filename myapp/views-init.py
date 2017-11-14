@@ -488,8 +488,7 @@ def login(request):
         form = LoginForm()
         myform = Captcha()
         error = 1
-        # return render_to_response('login.html', RequestContext(request, {'form': form,'myform':myform,'error':error}))
-        return render(request, 'login.html', {'form': form, 'myform': myform, 'error': error})
+        return render_to_response('login.html', RequestContext(request, {'form': form,'myform':myform,'error':error}))
     else:
         if request.user.is_authenticated():
             return render(request, 'include/base.html')
@@ -511,26 +510,22 @@ def login(request):
                             func.log_userlogin(request)
                             return HttpResponseRedirect("/")
                         else:
-                            # login failed
+                            #login failed
                             func.log_loginfailed(request, username)
-                            # request.session["wrong_login"] =  request.session["wrong_login"]+1
-                            # return render_to_response('login.html', RequestContext(request, {'form': form,'myform':myform,'password_is_wrong':True}))
-                            return render(request, 'login.html', {'form': form,'myform':myform,'password_is_wrong':True})
+                            #request.session["wrong_login"] =  request.session["wrong_login"]+1
+                            return render_to_response('login.html', RequestContext(request, {'form': form,'myform':myform,'password_is_wrong':True}))
                     else:
-                        #return render_to_response('login.html', RequestContext(request, {'form': form,'myform':myform}))
-                        return render(request, 'login.html', {'form': form,'myform':myform})
+                        return render_to_response('login.html', RequestContext(request, {'form': form,'myform':myform}))
                 else :
                     #cha_error
                     form = LoginForm(request.POST)
                     myform = Captcha(request.POST)
                     chaerror = 1
-                    # return render_to_response('login.html', RequestContext(request, {'form': form,'myform':myform,'chaerror':chaerror}))
-                    return render(request, 'login.html', {'form': form, 'myform': myform, 'chaerror': chaerror})
+                    return render_to_response('login.html', RequestContext(request, {'form': form,'myform':myform,'chaerror':chaerror}))
             else:
                 form = LoginForm()
                 myform = Captcha()
-                #return render_to_response('login.html', RequestContext(request, {'form': form,'myform':myform}))
-                return render(request, 'login.html', {'form': form, 'myform': myform})
+                return render_to_response('login.html', RequestContext(request, {'form': form,'myform':myform}))
 
 
 
