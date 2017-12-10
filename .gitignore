@@ -1,1 +1,3 @@
 *.pyc
+*-init.py
+*.html.init

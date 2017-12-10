@@ -1,6 +1,6 @@
 {% extends "include/base.html" %}
 {% block title %}
-    <title>TASK_UPLOAD</title>
+    <title xmlns="http://www.w3.org/1999/html">TASK_UPLOAD</title>
 {% endblock %}
 {% block name %}
     欢迎使用MySQL数据库语句审核功能
@@ -55,6 +55,9 @@
                     请输入要审核的SQL脚本:</br>
                     {{ form.a }} </br> </br>
                     {{ upform.filename }}
+                    {% if upload_btn == 1 %}
+                        <strong> <span style="color:red"> 请选择要检测的sql文件!^_^</br> </span></strong>
+                    {% endif %}
                     <input type=="text" maxlength="30" class="form-control" placeholder="执行说明，可选，最多30字" name="specification">
                     <span class="glyphicon glyphicon-apple" > 提交任务时请选择是否需要备份执行</span>
                     <select class="form-control"  name="ifbackup">
@@ -73,7 +76,7 @@
                     </select>
                     <button type="submit" name='check' class="btn btn-primary">审核</button >
                     <button type="submit" name='upload' class="btn btn-warning">脚本上传</button >
-                    <button type="submit" name='addtask' onclick="return confirm('PLEASE COMFIRM')" class="btn btn-danger">提交任务</button >
+                    <button type="submit" name='addtask' onclick="check_id_a()" class="btn btn-danger">提交任务</button >
 
                 </form >
             </td>

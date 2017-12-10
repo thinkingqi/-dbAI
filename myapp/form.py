@@ -38,7 +38,7 @@ class LoginForm(forms.Form):
 #     accountname = forms.CharField(max_length=25)
 
 class AddForm (forms.Form):
-    a = forms.CharField(widget=forms.Textarea(attrs={'cols': 100, 'rows': 15}))
+    a = forms.CharField(widget=forms.Textarea(attrs={'cols': 100, 'rows': 15}), required=False)
 
 class SqlForm (forms.Form):
     a = forms.CharField(widget=forms.Textarea(attrs={'cols': 100, 'rows': 15}))
@@ -55,7 +55,7 @@ class Taskscheduler(forms.Form):
     sche_time = forms.DateTimeField()
 
 class Uploadform(forms.Form):
-    filename = forms.FileField()
+    filename = forms.FileField(required=False)
 
 class Captcha(forms.Form):
     mycaptcha = CaptchaField(label="验证码:",)

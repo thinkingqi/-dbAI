@@ -370,13 +370,14 @@ def mysql_exec(request):
 def inception(request):
     objlist = func.get_mysql_hostlist(request.user.username,'incept')
     if request.method == 'POST':
+        print(">>>>>INCEP.POST:", request.POST)
         if request.POST.has_key('searchdb'):
             db_se = request.POST['searchdbname']
             objlist_tmp = func.get_mysql_hostlist(request.user.username, 'incept', db_se)
             # incase not found any db
             if len(objlist_tmp) > 0:
                 objlist = objlist_tmp
-        choosed_host = request.POST['cx']
+        choosed_host = request.POST['cx']  # choose target db
         specification = request.POST['specification'][0:30]
         if not User.objects.get(username=request.user.username).db_name_set.filter(dbtag=choosed_host)[:1]:
             return HttpResponseRedirect("/")
@@ -385,6 +386,12 @@ def inception(request):
             upform = Uploadform()
             if form.is_valid():
                 a = form.cleaned_data['a']
+                print(">>>>>a:", a, upform)
+
+                # uploadform/addform add requested=False check
+                if len(a.strip()) == 0:
+                    return HttpResponseRedirect("/sqlcheck")
+                # check done
 
                 # choosed_host = request.POST['cx']
                 # get valid statement
@@ -411,7 +418,8 @@ def inception(request):
         elif request.POST.has_key('upload'):
             upform = Uploadform(request.POST,request.FILES)
             #c = request.POST['cx']
-            if upform.is_valid():
+            if upform.is_valid() and request.FILES.has_key('filename'):
+                print(">>>>>upform.is_valid(): ",upform.is_valid())
                 # choosed_host = request.POST['cx']
                 sqltext=''
                 for chunk in request.FILES['filename'].chunks():
@@ -433,8 +441,8 @@ def inception(request):
                 return render(request, 'inception.html', {'form': form,'upform':upform,'objlist':objlist,'choosed_host':choosed_host})
             else:
                 form = AddForm()
-                upform = Uploadform()
-                return render(request, 'inception.html', {'form': form,'upform':upform,'objlist':objlist})
+                upform = Uploadform(initial={'filename':''})
+                return render(request, 'inception.html', {'form': form,'upform':upform,'objlist':objlist,'upload_btn': 1})
         elif request.POST.has_key('addtask'):
             form = AddForm(request.POST)
             needbackup = (int(request.POST['ifbackup']) if int(request.POST['ifbackup']) in (0,1) else 1)
@@ -443,6 +451,12 @@ def inception(request):
             upform = Uploadform()
             if form.is_valid():
                 sqltext = form.cleaned_data['a']
+
+                # uploadform/addform add requested=False check
+                if len(sqltext.strip()) == 0:
+                    return HttpResponseRedirect("/sqlcheck")
+                # check done
+
                 # get valid statement
                 try:
                     tmpsqltext = ''
@@ -472,8 +486,8 @@ def inception(request):
             else:
                 status='UPLOAD TASK FAIL'
                 return render(request, 'inception.html', {'form': form,'upform':upform,'objlist':objlist,'status':status,'choosed_host':choosed_host})
-        form = AddForm()
-        upform = Uploadform()
+        form = AddForm()  # initial={'a': ''})  # only "searchdb" button submit
+        upform = Uploadform()  # initial={'filename': ''})  # only "searchdb" button submit
         return render(request, 'inception.html', {'form': form, 'upform': upform, 'objlist': objlist,'choosed_host':choosed_host})
     else:
         form = AddForm()
@@ -1228,13 +1242,14 @@ def meta_data(request):
         favword = request.COOKIES['myfavword']
     except Exception,e:
         pass
-    objlist = func.get_mysql_hostlist(request.user.username, 'meta')
+    objlist = func.get_mysql_hostlist(request.user.username, 'meta')  # host_list = [dbtag, dbtag]
     if request.method == 'POST':
         try:
             choosed_host = request.POST['cx']
             table_se = request.POST['searchname']
             if request.POST.has_key('query'):
                 (data_list, collist, dbname) = meta.get_metadata(choosed_host,1)
+                #print("....",data_list, collist, dbname)
                 return render(request, 'meta_data.html', locals())
             elif request.POST.has_key('structure'):
                 tbname = request.POST['structure'].split(';')[0]

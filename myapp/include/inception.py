@@ -143,6 +143,7 @@ def inception_check(hosttag,sql,flag=0):
     #print tar_port+tar_passwd+tar_username+tar_host
     try:
         results,col = incep_exec(sql,tar_username,tar_passwd,tar_host,tar_port,tar_dbname,flag)
+        print(">>>>results,col:", results, col)
         return results,col,tar_dbname
     except Exception,e:
         wrongmsg = "select \"no admin account being setted\""

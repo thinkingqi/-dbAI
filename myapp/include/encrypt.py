@@ -19,12 +19,15 @@ class prpcrypt():
         self.ciphertext = cryptor.encrypt(text)
         # 因为AES加密时候得到的字符串不一定是ascii字符集的，输出到终端或者保存时候可能存在问题
         # 所以这里统一把加密后的字符串转化为16进制字符串
+        #print('>>>>',self.ciphertext)
         return b2a_hex(self.ciphertext)
 
     # 解密后，去掉补足的空格用strip() 去掉
     def decrypt(self, text):
         cryptor = AES.new(self.key, self.mode, self.key)
+        #print('<<<<',text)
         plain_text = cryptor.decrypt(a2b_hex(text))
+
         return plain_text.rstrip('\0')
 
 

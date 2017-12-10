@@ -35,7 +35,7 @@ def mysql_query(sql,user,passwd,host,port,dbname):
         return([str(e)],''),['error']
 
 def get_metadata(hosttag,flag,tbname=''):
-    dbname = Db_name.objects.get(dbtag=hosttag).dbname
+    dbname = Db_name.objects.get(dbtag=hosttag).dbname  # get dbname
     #get table list
     if flag ==1:
         if len(tbname)>0:
@@ -64,11 +64,12 @@ def get_metadata(hosttag,flag,tbname=''):
         results, col, tar_dbname = get_data(hosttag, sql)
         return results, col, tar_dbname
     elif flag == 6:
-        sql = "show tables ";
+        sql = "show tables "
         results , col, tar_dbname = get_data(hosttag, sql)
         return results
 
 def get_data(hosttag,sql):
+    #print('sql', hosttag, sql)
     a = Db_name.objects.filter(dbtag=hosttag)[0]
     #a = Db_name.objects.get(dbtag=hosttag)
     tar_dbname = a.dbname
@@ -83,14 +84,17 @@ def get_data(hosttag,sql):
         tar_port = a.instance.filter(role__in=['write','all'])[0].port
     pc = prpcrypt()
     for i in a.db_account_set.all():
-        if i.role == 'admin':
+        if i.role == 'admin':    # 第一个admin role的用户/密码当成连接后端db查询用户
             tar_username = i.user
             tar_passwd = pc.decrypt(i.passwd)
             break
-    #print tar_port+tar_passwd+tar_username+tar_host
+    print tar_port+tar_passwd+tar_username+tar_host
     try:
         results,col = mysql_query(sql,tar_username,tar_passwd,tar_host,tar_port,tar_dbname)
+        # col = ['TABLE_NAME', 'TABLE_TYPE', 'ENGINE', 'TABLE_COLLATION', 'TABLE_COMMENT']
+        # results = ((u'ota_base_ecu', u'BASE TABLE', u'InnoDB', u'utf8_general_ci', u'ECU\u8868'),(),())
     except Exception, e:
+        print("qhs:error:meta.get_data", e)
         #防止失败，返回一个wrong_message
         results,col = ([str(e)],''),['error']
         #results,col = mysql_query(wrong_msg,user,passwd,host,int(port),dbname)

@@ -90,4 +90,16 @@
                     $(this).show();
             });
         }
+
+        // add qihengshan
+        function check_id_a(){
+            var a_val=document.getElementById("id_a").value;
+            if(a_val.length<1)
+            {
+                alert('请输入要检测的SQL文本^_^');
+                return false;
+            }   else {
+                return confirm('PLEASE COMFIRM');
+            }
+        }
     </script>

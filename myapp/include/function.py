@@ -272,6 +272,7 @@ def get_mysql_hostlist(username,tag='tag',search=''):
                     'dbtag').all().distinct().order_by("dbtag"):
                 host_list.append(row['dbtag'])
     return host_list
+    # host_list = [dbtag, dbtag]
 
 
 
@@ -283,7 +284,7 @@ def get_op_type(methods='get'):
     if (methods=='get'):
         return op_list
 
-
+# 有读分离功能
 def get_connection_info(hosttag,request):
     # 确认dbname
     a = Db_name.objects.filter(dbtag=hosttag)[0]
@@ -345,7 +346,7 @@ def get_advice(hosttag, sql, request):
         results = 'sqladvisor not configured yet.'
     return results
 
-
+# 查询django
 def get_mysql_data(hosttag,sql,useraccount,request,limitnum):
     #确认dbname
     a = Db_name.objects.filter(dbtag=hosttag)[0]
@@ -646,7 +647,7 @@ def run_mysql_exec(hosttag,sql,useraccount,request):
     return results,col,tar_dbname
 
 
-
+# 向后端资源库django写入信息数据
 def mysql_exec(sql,user=user,passwd=passwd,host=host,port=int(port),dbname=dbname):
     try:
         conn=MySQLdb.connect(host=host,user=user,passwd=passwd,port=int(port),connect_timeout=5,charset='utf8')

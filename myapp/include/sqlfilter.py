@@ -2,7 +2,7 @@
 
 exceptlist = ["'","`","\""]
 
-def sql_init_filter(sqlfull):
+def sql_init_filter(sqlfull):  # u'select * from adaf ; \r\nselecta * from a222;\r\nupdate ada  333;'
     tmp = oldp = sql = ''
     sqllist = []
     flag = 0
@@ -22,7 +22,7 @@ def sql_init_filter(sqlfull):
         if len(i)!=0:
             tmp = tmp + i + '\n'
 
-    sqlfull = tmp
+    sqlfull = tmp  # u'select * from adaf ; \nselecta * from a222;\nupdate ada  333;\n'
     tmp = ''
     i=0
     while i<= (0 if len(sqlfull)==0 else len(sqlfull)-1):
@@ -62,11 +62,12 @@ def sql_init_filter(sqlfull):
             sql = sql + sqlfull[i]
         oldp = sqlfull[i]
         i=i+1
-    return sqllist
+    return sqllist  # [u'select * from adaf ;', u' \nselecta * from a222;', u'\nupdate ada  333;']
 
 
 def get_sql_detail(sqllist,flag):
 
+    # except ddl/dml on mysql db
     query_type = ['desc','describe','show','select','explain']
     dml_type = ['insert', 'update', 'delete', 'create', 'alter','rename', 'drop', 'truncate', 'replace']
     if flag == 1:

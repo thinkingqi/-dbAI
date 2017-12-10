@@ -124,7 +124,7 @@ DATABASES = {
         'NAME': 'django',
         'USER': 'qihengshan',
         'PASSWORD': 'qihengshan',
-        'HOST': 'xxxx',
+        'HOST': '192.168.46.105',
         'PORT': '3306',
         'OPTIONS': {
             #'init_command': 'SET default_storage_engine=INNODB',
@@ -190,11 +190,11 @@ os.path.join(BASE_DIR, "static"),
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
-EMAIL_HOST='xxxx'
-EMAIL_HOST_USER='xxxx'
-EMAIL_HOST_PASSWORD='xxxx'
+EMAIL_HOST='smtp.139.com'
+EMAIL_HOST_USER='qihengshan@139.com'
+EMAIL_HOST_PASSWORD='baby530604'
 EMAIL_PORT = 25
-EMAIL_SENDER = 'xxxx'
+EMAIL_SENDER = 'qihengshan@139.com'
 DEFAULT_FROM_MAIL = EMAIL_HOST_USER
 # EMAIL_USE_TLS = True
 # URL_FOR_PASSWD = 'http://192.168.70.128:8000'

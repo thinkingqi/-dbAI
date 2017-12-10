@@ -30,7 +30,7 @@ class Db_instance(models.Model):
         unique_together = ("ip","port")
 
 
-
+# db_name match db_instance then db_instance have role for write or read or read_write
 class Db_name (models.Model):
     dbtag = models.CharField(max_length=30,unique=True)
     dbname = models.CharField(max_length=30)

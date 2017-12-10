@@ -39,6 +39,7 @@ urlpatterns = (
     url(r'^sqlcheck/$', myapp_view.inception,name='inception'),
     url(r'^task/$', myapp_view.task_manager,name='task_manager'),
     url(r'^pre_query/$', myapp_view.pre_query,name='pre_query'),
+    url(r'^grant_privileges/$', myapp_view.grant_privileges,name='grant_privileges'),
     url(r'^pass_reset/$', myapp_view.pass_reset,name='pass_reset'),
     url(r'^pre_set/$', myapp_view.pre_set,name='pre_set'),
     url(r'^set_dbgroup/$', myapp_view.set_dbgroup,name='set_dbgroup'),

@@ -1,0 +1,133 @@
+{% extends "include/base.html" %}
+{% block title %}
+    <title>DB_PRIVILEGES_QUERY</title>
+{% endblock %}
+{% block name %}
+    欢迎使用数据库授权功能
+{% endblock %}
+{%block content%}
+    <table >
+        <tr>
+            <td>
+                </br>
+                </br>
+
+                <form role="form" method='post'>
+                    {% csrf_token %}
+                    CHOOSE:</br>
+
+
+
+                    {%  if choosed_host %}
+                        <select class="form-control col-md-1" name = "hosttag">
+                            <option value ="{{ choosed_host }}">{{ choosed_host }}</option>
+                        </select></br>
+                        <a href="/grant_privileges/"><input type="button" value="重选数据源" class="btn btn-danger"></a>
+                    {% else %}
+                            <select class="form-control col-md-1" name = "hosttag">
+                        {% for obj in objlist %}
+                            <option value ="{{ obj }}">{{ obj }}</option>
+                        {% endfor %}
+                    </select>
+                    {% endif %}
+
+                    </br>
+                    选择操作类型:</br>
+                    <select class="form-control col-md-1" name = "optype">
+                        {% for obj in optypelist %}
+                            <option value ="{{ obj }}">{{ obj }}</option>
+                        {% endfor %}
+                    </select>
+                    </br>
+
+                    起始时间：{{ form.begin }}
+                    结束时间：{{ form.end }}
+                    <button type="submit"  class="btn btn-primary">提交</button >
+
+                </form>
+            </td>
+            <td>
+                <div class="col-md-12">
+                    <h3>注意事项:</h3>
+                    <p> 1. 设置结束时间应大于开始时间，否则查询以结束时间为准</p>
+                    <p> 2. 输出结果默认按时间倒序</p>
+                    <p> 3. 通过"任务管理界面"执行的语句sqltype为incept</p>
+                </div>
+            </td>
+        </tr>
+
+    </table>
+    {% if datalist %}
+        {% include "include/pagejump/pagebutton.html" %}
+    {% endif %}
+    <table id="mytable" class="table table-condensed" border="1">
+        <thead>
+        <tr class="danger">
+            <th>ID</th>
+            <th>DBtag</th>
+            <th>授权用户</th>
+            <th>授权IP</th>
+            <th>权限</th>
+            <th>授权数据库</th>
+            <th>授权表</th>
+            <th>用户密码</th>
+            <th>创建时间</th>
+            <th>修改时间</th>
+            <th>状态</th>
+            <th>说明</th>
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item in datalist %}
+            <tr>
+                <td> {{ item.id }}</td>
+                <td> {{ item.grant_dbtag }}</td>
+                <td> {{ item.grant_user }}</td>
+                <td> {{ item.grant_ip }}</td>
+                <td> {{ item.grant_privileges }}</td>
+                <td> {{ item.grant_db }}</td>
+                <td> {{ item.grant_tables }}</td>
+                <td> {{ item.grant_user_pwd }}</td>
+                <td> {{ item.create_time|date:"Y-m-d H:i:s" }}</td>
+                <td> {{ item.modify_time|date:"Y-m-d H:i:s" }}</td>
+                <td> {{ item.grant_status }}</td>
+                <td> {{ item.grant_comment }}</td>
+                {% if perms.myapp.can_admin_task or perms.myapp.can_delete_task %}
+                    <td><button type="submit" name='delete' class="btn btn-primary" value={{ item.id }}>删除</button></td>
+                {% endif %}
+                <td><button type="submit" name='check' class="btn btn-warning" value={{ item.id }}>审核</button></td>
+                {% if perms.myapp.can_admin_task %}
+                    <td><button type="submit" name='exec' onclick="return confirm('PLEASE COMFIRM')"  class="btn btn-danger" value={{ item.id }}>执行</button></td>
+                    <td><button type="submit" name='appoint' onclick="return confirm('PLEASE COMFIRM')"  class="btn btn-success" value={{ item.id }}>预约时间执行</button></td>
+                {% endif %}
+                <td><button type="submit" name='see_running' class="btn btn-info" value={{ item.id }}>状态</button></td>
+                <td><button type="submit" name='update' class="btn btn-warning" value={{ item.id }}>查询修改</button></td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <script type="text/javascript">
+        //jeDate.skin('gray');
+        jeDate({
+            dateCell:"#id_begin",
+            format:"YYYY-MM-DD hh:mm:ss",
+            isinitVal:true,
+            isTime:true, //isClear:false,
+            minDate:"2014-09-19 00:00:00",
+            okfun:function(val){alert(val)}
+        })
+        jeDate({
+            dateCell:"#id_end",
+            format:"YYYY-MM-DD hh:mm:ss",
+            isinitVal:true,
+            isTime:true, //isClear:false,
+            minDate:"2014-09-19 00:00:00",
+            okfun:function(val){alert(val)}
+        })
+    </script>
+{% endblock %}
+{% block script %}
+    {% include "include/pagejump/pagejump.html" %}
+{% endblock %}
