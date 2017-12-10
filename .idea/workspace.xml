@@ -1,50 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="d98baace-2dfa-4124-9537-d0127f7f1d98" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/myapp/include/mylib.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/myapp/templates/include/privmodal.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/myapp/templates/previliges/grant_privileges.html" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/celerybeat.pid" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/myapp/templates/inception.html.init" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.gitignore" afterPath="$PROJECT_DIR$/.gitignore" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/mypro.iml" afterPath="$PROJECT_DIR$/.idea/mypro.iml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/monitor/views.py" afterPath="$PROJECT_DIR$/monitor/views.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/etc/config.py" afterPath="$PROJECT_DIR$/myapp/etc/config.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/form.py" afterPath="$PROJECT_DIR$/myapp/form.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/include/chart.py" afterPath="$PROJECT_DIR$/myapp/include/chart.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/include/encrypt.py" afterPath="$PROJECT_DIR$/myapp/include/encrypt.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/include/function.py" afterPath="$PROJECT_DIR$/myapp/include/function.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/include/inception.py" afterPath="$PROJECT_DIR$/myapp/include/inception.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/include/meta.py" afterPath="$PROJECT_DIR$/myapp/include/meta.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/include/mon.py" afterPath="$PROJECT_DIR$/myapp/include/mon.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/include/pri.py" afterPath="$PROJECT_DIR$/myapp/include/pri.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/include/scheduled.py" afterPath="$PROJECT_DIR$/myapp/include/scheduled.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/include/sqlfilter.py" afterPath="$PROJECT_DIR$/myapp/include/sqlfilter.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/models.py" afterPath="$PROJECT_DIR$/myapp/models.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/tasks.py" afterPath="$PROJECT_DIR$/myapp/tasks.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/templates/admin/binlog_parse.html" afterPath="$PROJECT_DIR$/myapp/templates/admin/binlog_parse.html" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/templates/admin/dupkey_check.html" afterPath="$PROJECT_DIR$/myapp/templates/admin/dupkey_check.html" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/templates/admin/mysql_admin.html" afterPath="$PROJECT_DIR$/myapp/templates/admin/mysql_admin.html" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/templates/admin/tb_check.html" afterPath="$PROJECT_DIR$/myapp/templates/admin/tb_check.html" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/templates/inception.html" afterPath="$PROJECT_DIR$/myapp/templates/inception.html" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/templates/include/base.html" afterPath="$PROJECT_DIR$/myapp/templates/include/base.html" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/templates/include/foot.html" afterPath="$PROJECT_DIR$/myapp/templates/include/foot.html" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/templates/include/mail_template.html" afterPath="$PROJECT_DIR$/myapp/templates/include/mail_template.html" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/templates/include/nav.html" afterPath="$PROJECT_DIR$/myapp/templates/include/nav.html" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/templates/include/pagejump/pagejump.html" afterPath="$PROJECT_DIR$/myapp/templates/include/pagejump/pagejump.html" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/templates/log_query.html" afterPath="$PROJECT_DIR$/myapp/templates/log_query.html" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/templates/meta_data.html" afterPath="$PROJECT_DIR$/myapp/templates/meta_data.html" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/templates/previliges/pass_reset.html" afterPath="$PROJECT_DIR$/myapp/templates/previliges/pass_reset.html" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/templates/task_manager.html" afterPath="$PROJECT_DIR$/myapp/templates/task_manager.html" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/templatetags/cus_filter.py" afterPath="$PROJECT_DIR$/myapp/templatetags/cus_filter.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/myapp/views.py" afterPath="$PROJECT_DIR$/myapp/views.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/mypro/settings.py" afterPath="$PROJECT_DIR$/mypro/settings.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/mypro/urls.py" afterPath="$PROJECT_DIR$/mypro/urls.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/static/bootstrap/js/myfunc.js" afterPath="$PROJECT_DIR$/static/bootstrap/js/myfunc.js" />
-    </list>
+    <list default="true" id="d98baace-2dfa-4124-9537-d0127f7f1d98" name="Default" comment="" />
     <ignored path="mypro.iws" />
     <ignored path=".idea/workspace.xml" />
     <ignored path=".idea/dataSources.local.xml" />
