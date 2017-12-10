@@ -43,6 +43,7 @@ def mon_edit(request):
 
     elif request.method == 'POST':
         try:
+            print(">>>>>request.POST:", request.POST)
             if request.POST.has_key('set'):
                 myid = int(request.POST['set'])
                 edit_db = MySQL_monitor.objects.get(id=myid)

@@ -3,7 +3,7 @@
 import MySQLdb,sys,string,time,datetime,uuid,commands,os
 from myapp.include.encrypt import prpcrypt
 from django.contrib.auth.models import User,Permission,ContentType,Group
-from myapp.models import Db_name,Db_account,Db_instance,Oper_log,Login_log,Db_group
+from myapp.models import Db_name,Db_account,Db_instance,Oper_log,Login_log,Db_group,Db_privileges
 from myapp.form import LoginForm,Captcha
 from myapp.etc import config
 from mypro import settings
@@ -284,6 +284,10 @@ def get_op_type(methods='get'):
     if (methods=='get'):
         return op_list
 
+def get_db_privs():
+
+    return config.MYSQL_PRIVS
+
 # 有读分离功能
 def get_connection_info(hosttag,request):
     # 确认dbname
@@ -507,6 +511,248 @@ def get_log_data(dbtag,optype,begin,end):
             log = Oper_log.objects.filter(dbtag=dbtag).filter(sqltype=optype).filter(create_time__lte=end).order_by("-create_time")[0:100]
     return log
 
+def get_privileges_data(dbtag,optype=None,begin=None,end=None):
+    if (optype=='all'):
+        #如果结束时间小于开始时间，则以结束时间为准
+        if (end > begin):
+            log = Db_privileges.objects.filter(grant_dbtag=dbtag).filter(create_time__lte=end).filter(create_time__gte=begin).order_by("-create_time")[0:100]
+        else:
+            log = Db_privileges.objects.filter(grant_dbtag=dbtag).filter(create_time__lte=end).order_by("-create_time")[0:100]
+    else:
+        if not optype and not begin and not end:
+            log = Db_privileges.objects.filter(grant_dbtag=dbtag).order_by("-create_time")[0:100]
+        elif (end > begin):
+            log = Db_privileges.objects.filter(grant_dbtag=dbtag).filter(sqltype=optype).filter(create_time__lte=end).filter(create_time__gte=begin).order_by("-create_time")[0:100]
+        else:
+            log = Db_privileges.objects.filter(grant_dbtag=dbtag).filter(sqltype=optype).filter(create_time__lte=end).order_by("-create_time")[0:100]
+    return log
+
+# ADD QHS
+def get_instance_addr(dbtag):
+    instance = Db_instance.objects.filter(db_name__dbtag=dbtag)
+    dbn = Db_name.objects.filter(dbtag=dbtag)
+    addr = dbtag+':'+instance[0].ip+':'+str(instance[0].port)+':'+dbn[0].dbname
+    if 'aliyun' in instance[0].ip:
+        idc = 1
+    elif 'amazon' in instance[0].ip:
+        idc = 2
+    else:
+        idc = 0
+    return addr, dbn[0].dbname, idc
+
+from random import Random
+pc = prpcrypt()
+def random_pwd(randomlength=16): #固定长度16
+    pwd = ''    # str初始为空
+    chars = 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789'
+    length = len(chars) - 1
+    random = Random()
+    for i in range(randomlength):    #//循环生成随机字符串
+        pwd += chars[random.randint(0, length)]
+    return pwd, pc.encrypt(pwd)
+
+def get_decrypt_pwd(pwd):
+    return pc.decrypt(pwd)
+
+def get_mypd():
+    return pc.decrypt(config.opsdbpwd)
+
+def add_new_priv(dbtool, grant_privs, grant_db, grant_tables, grant_user, grant_ip, grant_user_pwd, idc):
+    grant_tbs=[tb.strip() for tb in grant_tables.split(',') if len(tb.strip()) >0]
+    grant_ips = [ip.strip() for ip in grant_ip.split(',') if len(ip.strip()) >0]
+    if '*' in grant_tbs or '%' in grant_tbs:
+        try:
+            for ip in grant_ips:
+                msg, status = check_user(dbtool, grant_user=grant_user, grant_ip=ip, idc=idc)
+                if status == 'ok':
+                    sql = "grant {} on {}.* to {}@'"'{}'"' identified by '"'{}'"' ".format(grant_privs, grant_db, grant_user, ip, grant_user_pwd)
+                    print("add_new_priv:sql>>>>>: ", sql)
+                    try:
+                        dbtool.execute(sql)
+                    except Exception as e:
+                        return str(e), 'notok'
+                else:
+                    return msg, 'notok'
+            return 'Create user and grant privileges SUCC', 'ok'
+        except Exception as e:
+            return str(e), 'notok'
+    else:
+        try:
+            for tb in grant_tbs:
+                if '%' in tb or '*' in tb:
+                    tbs = get_tbs(dbtool, grant_db, tb)
+                    for t in tbs:
+                        t = t.replace('%', '*')
+                        for ip in grant_ips:
+                            sql = "grant {} on {}.{} to {}@'"'{}'"' identified by '"'{}'"' ".format(grant_privs, grant_db, t, grant_user, ip, grant_user_pwd)
+                            try:
+                                dbtool.execute(sql)
+                            except Exception as e:
+                                return str(e), 'notok'
+            return 'Create user and grant privileges SUCC', 'ok'
+        except Exception as e:
+            return str(e), 'notok'
+
+# check user is exists or not
+def check_user(dbtool, grant_privs=None, grant_db=None, grant_tables=None, grant_user=None, grant_ip=None, grant_user_pwd=None,idc=None):
+    if idc == 1:  # for aliyun
+        sql = 'select user,host from mysql.user_view where user={} and host={}'.format(grant_user, grant_ip)
+    else:
+        sql = 'select user,host from mysql.user where user={} and host={}'.format(grant_user, grant_ip)
+    ret = dbtool.query(sql)
+    if ret:
+        return '{}@"'"{}"'" exists '.format(grant_user, grant_ip), 'notok'
+    else:
+        return '', 'ok'
+
+# modify priv :button -> confirm_modify
+def modify_priv(dbtool, grant_id, grant_privs, grant_db, grant_tables, grant_user, grant_ip, grant_comment, idc):
+    pline = Db_privileges.objects.get(id=grant_id)
+    grant_tbs = [tb.strip() for tb in grant_tables.split(',') if len(tb.strip()) > 0]
+    grant_ips = [ip.strip() for ip in grant_ip.split(',') if len(ip.strip()) > 0]
+    grant_privs = [priv.strip() for priv in grant_privs.split(',') if len(priv.strip()) > 0]
+
+    now_tbs = [t.strip() for t in pline.grant_tables.split(',') if len(t.strip()) > 0]
+    now_ips = [i.strip() for i in pline.grant_ip.split(',') if len(i.strip()) > 0]
+    now_privs = [p.strip() for p in pline.grant_privs.split(',') if len(p.strip()) > 0]
+
+    # add tbs and delete tbs
+    plus_tbs = list(set(grant_tbs).intersection(set(now_tbs)))
+    minus_tbs = list(set(now_tbs).difference(set(grant_tbs)))
+
+    # add ips and delete ips
+    plus_ips = list(set(grant_ips).difference(set(now_ips)))
+    minus_ips = list(set(now_ips).difference(set(grant_ips)))
+
+    # add privs and delete privs
+    plus_privs = list(set(grant_privs).difference(set(now_privs)))
+    minus_privs = list(set(now_privs).difference(set(grant_privs)))
+
+    # last need ips/privs/tbs
+    last_ips = list(set(grant_ips).intersection(set(now_ips))) + list(set(grant_ips).difference(set(now_ips)))
+    last_privs = list(set(grant_privs).intersection(set(now_privs))) + list(set(grant_privs).difference(set(now_privs)))
+    last_tbs = list(set(grant_tbs).intersection(set(now_tbs))) + list(set(grant_tbs).difference(set(now_tbs)))
+
+    for ip in minus_ips:
+        sql = 'drop user {}@"'"{}"'" '.format(grant_user, ip)
+        print(">>>>>drop user in minus_ips:", sql)
+        try:
+            dbtool.execute(sql)
+        except Exception as e:
+            print(">>>drop user error:", e)
+            return str(e), 'notok'
+    for priv in minus_privs:
+        for ip in list(set(now_ips).intersection(set(grant_ips))):
+            for tb in now_tbs:
+                tb = tb.replace('%', '*')
+                sql = 'revoke {} on {}.{} from {}@"'"{}"'" '.format(priv, grant_db, tb, ip)
+                print(">>>>revoke priv from user:", sql)
+                try:
+                    dbtool.execute(sql)
+                except Exception as e:
+                    print(">>>>revoke privs error: ", e)
+                    return str(e), 'notok'
+    pwd = pc.decrypt(pline.grant_user_pwd)
+    for ip in grant_ips:
+        for priv in grant_privs:
+            for tb in grant_tbs:
+                tb = tb.replace('%', '*')
+                sql = 'grant {} on {}.{} to {}@"'"{}"'" identified by "'"{}"'" '.format(priv, grant_db, tb, grant_user, ip, pwd)
+                print(">>>> modify button grant sql: ", sql)
+                try:
+                    dbtool.execute(sql)
+                except Exception as e:
+                    print("modify button grant error: ", e)
+                    return str(e), 'notok'
+    try:
+        pline.grant_ip = ','.join(grant_ips)
+        pline.grant_privs = ','.join(grant_privs)
+        pline.grant_tables = ','.join(grant_tables)
+        pline.grant_comment = grant_comment
+        pline.save()
+    except Exception as e:
+        print(">>>>pline.save: ", e)
+        return str(e), 'notok'
+    return 'Modify user and modify privileges SUCC', 'ok'
+
+# for confirm_add_ip button
+def confirm_add_ip(dbtool, grant_id, hosttag, grant_user, grant_ip, grant_comment):
+    pline = Db_privileges.objects.get(id=grant_id)
+    grant_ips = [ip.strip() for ip in grant_ip.split(',') if len(ip.strip()) > 0]
+    now_ips = [i.strip() for i in pline.grant_ip.split(',') if len(i.strip()) > 0]
+    now_tbs = [t.strip() for t in pline.grant_tables.split(',') if len(t.strip()) > 0]
+
+    plus_ips = list(set(grant_ips).difference(set(now_ips)))
+    pwd = pc.decrypt(pline.grant_user_pwd)
+
+    if '%' in now_ips:
+        return 'confirm add ip and grant privileges SUCC', 'ok'
+
+    for ip in plus_ips:
+        for tb in now_tbs:
+            tb = tb.replace('%', '*')
+            sql = 'grant {} on {}.{} to {}@"'"{}"'" identified by "'"{}"'" '.format(pline.grant_privs, pline.grant_db, tb, grant_user, ip, pwd)
+            print(">>>>confirm_add_ip sql: ", sql)
+            try:
+                dbtool.execute(sql)
+            except Exception as e:
+                print(">>>> confirm_add_ip error: ", e)
+                return str(e), 'notok'
+    # update db_privileges column : grannt_ip
+    grant_ips.append(pline.grant_ip)
+    total_ip = ','.join(grant_ips)
+    pline.grant_ip = total_ip
+    pline.grant_comment = grant_comment
+    pline.save()
+
+    return 'confirm add ip and grant privileges SUCC', 'ok'
+
+# for confirm_update_pwd button
+def confirm_update_pwd(dbtool, grant_id, hosttag, grant_user, grant_ip, update_user_pwd,grant_comment):
+    try:
+        grant_ips = [ip.strip() for ip in grant_ip.split(',') if len(ip.strip()) > 0]
+        for ip in grant_ips:
+            sql='set password for {}@"'"{}"'" = password("'"{}"'")'.format(grant_user, ip, update_user_pwd)
+            print(">>>> confirm_update_pwd sql:", sql)
+            try:
+                dbtool.execute(sql)
+            except Exception as e:
+                print(">>>> confirm_update_pwd error: ", e)
+                return str(e), 'notok'
+        # -----
+        pline = Db_privileges.objects.get(id=grant_id)
+        pline.grant_user_pwd = pc.encrypt(update_user_pwd)
+        pline.grant_comment = grant_comment
+        pline.save()
+    except Exception as e:
+        return str(e), 'notok'
+
+    return 'confirm update pwd SUCC', 'ok'
+
+# for delete priv
+def confirm_delete(dbtool, grant_id, hosttag):
+    pline = Db_privileges.objects.get(id=grant_id)
+    pline.grant_status = 0
+    pline.save()
+    # ---
+    for ip in pline.grant_ip:
+        sql = 'drop user {}@"'"{}"'" '.format(pline.grant_user, ip.strip())
+        print(">>>>pline.grant_ip:", pline.grant_ip, ':', sql)
+        dbtool.execute(sql)
+    return 'delete privileges SUCC', 'ok'
+
+
+# get table like 'msg%'
+def get_tbs(dbtool, grant_db, tb):
+    sql = "show tables from {} like {}".format(grant_db, tb)
+    ret = dbtool.execute(sql)
+    tbs = []
+    for item in ret:
+       for k, v in item.items():
+           tbs.append(v)
+    return tbs
+
+# ADD QHS BEFOR get_instance_addr DONE
 
 def check_explain (sqltext):
     sqltext = sqltext.strip()
@@ -781,7 +1027,7 @@ def get_usergp_list():
 
 def get_diff(dbtag1,tb1,dbtag2,tb2):
 
-    if os.path.isfile(path_mysqldiff) :
+    if os.path.isfile(path_mysqldiff):
         tar_host1, tar_port1, tar_username1, tar_passwd1,tar_dbname1 = get_conn_info(dbtag1)
         tar_host2, tar_port2, tar_username2, tar_passwd2,tar_dbname2 = get_conn_info(dbtag2)
 
@@ -790,6 +1036,7 @@ def get_diff(dbtag1,tb1,dbtag2,tb2):
         option = ' --difftype=sql'
         table = ' {}.{}:{}.{}'.format(tar_dbname1,tb1,tar_dbname2,tb2)
         cmd = path_mysqldiff + server1 + server2 + option + table
+        print(">>>>diff_cmd:", cmd)
         output = os.popen(cmd)
         result = output.read()
         # result = commands.getoutput(cmd)

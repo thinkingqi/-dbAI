@@ -1,4 +1,5 @@
 {% extends "include/base.html" %}
+{% load cus_filter %}
 {% block title %}
     <title>DB_PRIVILEGES_QUERY</title>
 {% endblock %}
@@ -19,12 +20,12 @@
 
 
                     {%  if choosed_host %}
-                        <select class="form-control col-md-1" name = "hosttag">
+                        <select class="form-control col-md-1" id="hosttag" name = "hosttag">
                             <option value ="{{ choosed_host }}">{{ choosed_host }}</option>
                         </select></br>
                         <a href="/grant_privileges/"><input type="button" value="重选数据源" class="btn btn-danger"></a>
                     {% else %}
-                            <select class="form-control col-md-1" name = "hosttag">
+                            <select class="form-control col-md-1" id="hosttag" name = "hosttag">
                         {% for obj in objlist %}
                             <option value ="{{ obj }}">{{ obj }}</option>
                         {% endfor %}
@@ -33,7 +34,7 @@
 
                     </br>
                     选择操作类型:</br>
-                    <select class="form-control col-md-1" name = "optype">
+                    <select class="form-control col-md-1" id="optype" name = "optype">
                         {% for obj in optypelist %}
                             <option value ="{{ obj }}">{{ obj }}</option>
                         {% endfor %}
@@ -42,27 +43,32 @@
 
                     起始时间：{{ form.begin }}
                     结束时间：{{ form.end }}
-                    <button type="submit"  class="btn btn-primary">提交</button >
+                    <button name="with_time_submit" type="submit" class="btn btn-primary">提交</button >
 
                 </form>
+
             </td>
             <td>
                 <div class="col-md-12">
                     <h3>注意事项:</h3>
                     <p> 1. 设置结束时间应大于开始时间，否则查询以结束时间为准</p>
                     <p> 2. 输出结果默认按时间倒序</p>
-                    <p> 3. 通过"任务管理界面"执行的语句sqltype为incept</p>
+                    <p> 3. 通过选择"操作类型"模糊查询特写类型的权限</p>
+                    <div>
+                    {% if err_msg %}
+                        <span style="color:red">{{ err_msg }}</span>
+                    {% endif %}
+                </div>
                 </div>
             </td>
         </tr>
-
     </table>
     {% if datalist %}
         {% include "include/pagejump/pagebutton.html" %}
     {% endif %}
-    <table id="mytable" class="table table-condensed" border="1">
+    <table id="mytable" class="table table-condensed">  <!--border="1" style="word-wrap: break-word; word-break: break-all;"-->
         <thead>
-        <tr class="danger">
+        <tr class="danger" style="width: 100%;">
             <th>ID</th>
             <th>DBtag</th>
             <th>授权用户</th>
@@ -76,18 +82,32 @@
             <th>状态</th>
             <th>说明</th>
             <th>操作</th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
         </tr>
         </thead>
         <tbody>
         {% for item in datalist %}
-            <tr>
+            <tr id="{{ item.id }}">
                 <td> {{ item.id }}</td>
                 <td> {{ item.grant_dbtag }}</td>
                 <td> {{ item.grant_user }}</td>
-                <td> {{ item.grant_ip }}</td>
-                <td> {{ item.grant_privileges }}</td>
+{#                <td>#}
+{#                    {% for ip in item.grant_ip|split_cols:"," %}#}
+{#                        {{ ip }}<br>#}
+{#                    {% endfor %}#}
+{#                </td>#}
+{#                <td>#}
+{#                    {% for priv in item.grant_privs|split_cols:"," %}#}
+{#                        {{ priv }}#}
+{#                    {% endfor %}#}
+{#                </td>#}
+                <td> {{ item.grant_ip|split_cols }}</td>
+                <td> {{ item.grant_privs|split_cols }}</td>
                 <td> {{ item.grant_db }}</td>
-                <td> {{ item.grant_tables }}</td>
+                <td> {{ item.grant_tables|split_cols }}</td>
                 <td> {{ item.grant_user_pwd }}</td>
                 <td> {{ item.create_time|date:"Y-m-d H:i:s" }}</td>
                 <td> {{ item.modify_time|date:"Y-m-d H:i:s" }}</td>
@@ -96,17 +116,24 @@
                 {% if perms.myapp.can_admin_task or perms.myapp.can_delete_task %}
                     <td><button type="submit" name='delete' class="btn btn-primary" value={{ item.id }}>删除</button></td>
                 {% endif %}
-                <td><button type="submit" name='check' class="btn btn-warning" value={{ item.id }}>审核</button></td>
-                {% if perms.myapp.can_admin_task %}
-                    <td><button type="submit" name='exec' onclick="return confirm('PLEASE COMFIRM')"  class="btn btn-danger" value={{ item.id }}>执行</button></td>
-                    <td><button type="submit" name='appoint' onclick="return confirm('PLEASE COMFIRM')"  class="btn btn-success" value={{ item.id }}>预约时间执行</button></td>
+                {% if perms.myapp_can_modify_priv %}
+                    <td><button type="submit" name='modify' class="btn btn-warning" value={{ item.id }} data-toggle="modal" data-target="#addNewPrivModal">修改</button></td>
                 {% endif %}
-                <td><button type="submit" name='see_running' class="btn btn-info" value={{ item.id }}>状态</button></td>
-                <td><button type="submit" name='update' class="btn btn-warning" value={{ item.id }}>查询修改</button></td>
+{#                {% if perms.myapp.can_admin_task %}#}
+{#                    <td><button type="submit" name='exec' onclick="return confirm('PLEASE COMFIRM')"  class="btn btn-danger" value={{ item.id }}>执行</button></td>#}
+{#                {% endif %}#}
+                <td><button type="submit" name='add_ip' class="btn btn-info" value={{ item.id }} data-toggle="modal" data-target="#addIpModal">增IP</button></td>
+                <td><button type="submit" name='check_status' class="btn btn-info" value={{ item.id }} data-toggle="modal" data-target="#checkStatusModal">状态</button></td>
+                <td><button type="submit" name='update_pwd' class="btn btn-warning" value={{ item.id }} data-toggle="modal" data-target="#updatePwdModal">改密</button></td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
+    <hr>
+    <div style="text-align: center">
+        <button id="add_new_priv" type="button" class="btn btn-info" name="add_new_priv" value="QHS" data-whatever="{{ addr }}" data-toggle="modal" data-target="#addNewPrivModal">新增授权</button >
+    </div>
+    {% include "include/privmodal.html" %}
 
     <script type="text/javascript">
         //jeDate.skin('gray');
@@ -114,19 +141,57 @@
             dateCell:"#id_begin",
             format:"YYYY-MM-DD hh:mm:ss",
             isinitVal:true,
+            initDate:[{MM:"-24"},true],
             isTime:true, //isClear:false,
+            festival:true,
             minDate:"2014-09-19 00:00:00",
             okfun:function(val){alert(val)}
-        })
+        });
         jeDate({
             dateCell:"#id_end",
             format:"YYYY-MM-DD hh:mm:ss",
             isinitVal:true,
+            initDate:[{DD:"-2"},true],
+            festival:true,
             isTime:true, //isClear:false,
             minDate:"2014-09-19 00:00:00",
             okfun:function(val){alert(val)}
-        })
+        });
+
+    //  for delete
+    $(document).on('click',"#mytable tr td button[name='delete']",function() {
+        //console.log($(this).parent().parent().attr("id"));
+        //console.log($(this).parent().parent().children().eq(1).html());
+        var myrow=$(this).parent().parent().children();
+        //$("#confirm_update_pwd").val(myrow.eq(0).html());
+        //$("#updatePwdModal input[name='ins_host_add']").val(myrow.eq(1).html());
+        //$("#updatePwdModal input[name='grant_user_add']").val(myrow.eq(2).html()).attr("readonly","readonly");
+        var ins_host_add = myrow.eq(1).html();
+        var grant_id = myrow.eq(0).html();
+        $.ajax({
+            type: "POST",
+            url:"/grant_privileges/",
+            data:{
+                'delete': 1,
+                'ins_host_add': ins_host_add.trim(),
+                'grant_id' : grant_id.trim()
+            },
+            success: function(r){
+                //window.open('/grant_privileges/','_self')
+                myrow.parent().remove();
+                },
+            error: function (error) {
+                // delete row: item.id failed
+                console.log(error);
+                alert('{{ err_msg }}');
+            }
+            });
+    });
+    // for updatePwdModal done
+
     </script>
+
+
 {% endblock %}
 {% block script %}
     {% include "include/pagejump/pagejump.html" %}

@@ -140,7 +140,7 @@ def check_mysql_host(db):
                 sendmail_monitor.delay(db,db.mail_to.split(';'),longsql_send,alarm_type)
         else:
             check_ifok(db, alarm_type)
-    if db.check_active == 1 :
+    if db.check_active == 1 :    #  over active_threshold  alarm_type=1
         alarm_type = 1
         if len(result)>=int(db.active_threshold) :
             if record_alarm(db, alarm_type):

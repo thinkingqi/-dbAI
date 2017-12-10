@@ -158,18 +158,17 @@
         </div>
     </div>
 </div>
-
 <script>
 // for privs/ips/tbs \n show
     function getStr(s) {
         var strList = s.split(',');
-        var newStr = "";
+        var newStr = ",";
         for (var l=0;l<strList.length;l++) {
             if (strList[l].trim().length > 0) {
-                newStr += strList[l].trim() + ","
+                newStr += strList[l].trim()
             }
         }
-        return newStr.substring(0, newStr.length-1);
+        return newStr.substring(1,newStr.length);
     }
 
 // for modifyModal
@@ -184,9 +183,9 @@
         $("#confirm_add").val(myrow.eq(0).html());
         $("#addNewPrivModal input[name='ins_host_add']").val(myrow.eq(1).html());
         $("#addNewPrivModal input[name='grant_user_add']").val(myrow.eq(2).html()).attr("readonly","readonly");
-        $("#addNewPrivModal input[name='grant_host_add']").val(getStr(myrow.eq(3).html()));
+        $("#addNewPrivModal input[name='grant_host_add']").val(myrow.eq(3).html());
         $("#addNewPrivModal input[name='grant_db_add']").val(myrow.eq(5).html()).attr("readonly","readonly");
-        $("#addNewPrivModal input[name='grant_tbs_add']").val(getStr(myrow.eq(6).html()));
+        $("#addNewPrivModal input[name='grant_tbs_add']").val(myrow.eq(6).html());
         $("#addNewPrivModal input[name='remark']").val(myrow.eq(11).html());
         var privs=myrow.eq(4).html().split(',');
         //console.log(privs);
@@ -231,7 +230,7 @@
         $("#confirm_add_ip").val(myrow.eq(0).html());
         $("#addIpModal input[name='ins_host_add']").val(myrow.eq(1).html());
         $("#addIpModal input[name='grant_user_add']").val(myrow.eq(2).html()).attr("readonly","readonly");
-        $("#addIpModal input[name='grant_host_add']").val(getStr(myrow.eq(3).html()));
+        $("#addIpModal input[name='grant_host_add']").val(myrow.eq(3).html());
         $("#addIpModal input[name='remark']").val(myrow.eq(11).html());
         //$("#modifyModal input[name='from[]']").val(myrow.eq(1).html());
         //$("#modifyModal input[name='to[]']").val(myrow.eq(1).html());
@@ -302,7 +301,7 @@
         $("#confirm_update_pwd").val(myrow.eq(0).html());
         $("#updatePwdModal input[name='ins_host_add']").val(myrow.eq(1).html());
         $("#updatePwdModal input[name='grant_user_add']").val(myrow.eq(2).html()).attr("readonly","readonly");
-        $("#updatePwdModal input[name='grant_host_add']").val(getStr(myrow.eq(3).html())).attr("readonly","readonly");
+        $("#updatePwdModal input[name='grant_host_add']").val(myrow.eq(3).html()).attr("readonly","readonly");
         $("#updatePwdModal input[name='update_pwd_add']").val(myrow.eq(7).html());
         $("#updatePwdModal input[name='remark']").val(myrow.eq(11).html());
         //$("#modifyModal input[name='from[]']").val(myrow.eq(1).html());
@@ -343,9 +342,9 @@
         var instanceaddr="<tr><th><strong>数据库地址: </strong></th><th>"+myrow.eq(1).html()+"[ {{ addr }} ]</th></tr>";
         var grantuser="<tr><th><strong>授权用户: </strong></th><th>"+myrow.eq(2).html()+"</th></tr>";
         var grantuserpwd="<tr><th><strong>用户密码: </strong></th><th>"+myrow.eq(7).html()+"</th></tr>";
-        var granthost="<tr><th><strong>授权IP: </strong></th><th>"+getStr(myrow.eq(3).html())+"</th></tr>";
-        var granttbs="<tr><th><strong>授权表: </strong></th><th>"+getStr(myrow.eq(6).html())+"</th></tr>";
-        var grantprivs="<tr><th><strong>权限: </strong></th><th>"+getStr(myrow.eq(4).html())+"</th></tr>";
+        var granthost="<tr><th><strong>授权IP: </strong></th><th>"+myrow.eq(3).html()+"</th></tr>";
+        var granttbs="<tr><th><strong>授权表: </strong></th><th>"+myrow.eq(6).html()+"</th></tr>";
+        var grantprivs="<tr><th><strong>权限: </strong></th><th>"+myrow.eq(4).html()+"</th></tr>";
         var grantremark="<tr><th><strong>备注: </strong></th><th>"+myrow.eq(11).html()+"</th></tr>";
         var check_status="<table class='table table-bordered'>"+instanceaddr+grantuser+grantuserpwd+granthost+granttbs+grantprivs+grantremark+"</table>";
         $("#check_priv_status").html(check_status);

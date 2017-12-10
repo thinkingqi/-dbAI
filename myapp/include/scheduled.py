@@ -387,7 +387,7 @@ def get_dupreport_byins(insname):
         if flag == False:
             break
     if  vars().has_key('tar_username'):
-        cmd = incept.pttool_path + '/pt-duplicate-key-checker' + ' -u %s -p %s -P %d -h %s ' % (tar_username, tar_passwd, int(insname.port), insname.ip)
+        cmd = incept.pttool_path + '/pt-duplicate-key-checker --no-version-check' + ' -u %s -p %s -P %d -h %s ' % (tar_username, tar_passwd, int(insname.port), insname.ip)
         dup_result = commands.getoutput(cmd)
         return dup_result
 
@@ -406,8 +406,8 @@ def get_dupreport(hosttag,email=''):
         except Exception,e:
             print e
             return "please check your db set"
-        if os.path.isfile(incept.pttool_path+'/pt-duplicate-key-checker') :
-            cmd = incept.pttool_path+'/pt-duplicate-key-checker' + ' -u %s -p %s -P %d -h %s -d %s ' % (tar_username, tar_passwd, int(tar_port), tar_host, tar_dbname)
+        if os.path.isfile(incept.pttool_path+'/pt-duplicate-key-checker'):
+            cmd = incept.pttool_path+'/pt-duplicate-key-checker --no-version-check' + ' -u %s -p %s -P %d -h %s -d %s ' % (tar_username, tar_passwd, int(tar_port), tar_host, tar_dbname)
             dup_result = commands.getoutput(cmd)
             dup_result = db.dbtag + '\n' + dup_result
             if email != '':

@@ -38,10 +38,10 @@ class LoginForm(forms.Form):
 #     accountname = forms.CharField(max_length=25)
 
 class AddForm (forms.Form):
-    a = forms.CharField(widget=forms.Textarea(attrs={'cols': 100, 'rows': 15}), required=False)
+    a = forms.CharField(widget=forms.Textarea(attrs={'cols': 150, 'rows': 20}), required=False)
 
 class SqlForm (forms.Form):
-    a = forms.CharField(widget=forms.Textarea(attrs={'cols': 100, 'rows': 15}))
+    a = forms.CharField(widget=forms.Textarea(attrs={'cols': 150, 'rows': 20}))
     filename = forms.FileField()
 
 class Logquery(forms.Form):

@@ -11,9 +11,11 @@ from django.http import HttpResponse,HttpResponseRedirect,StreamingHttpResponse,
 from django.contrib.auth.decorators import login_required,permission_required
 from django.contrib.auth.models import User,Permission,ContentType,Group
 from myapp.include import function as func,inception as incept,chart,pri,meta,sqlfilter
-from myapp.models import Db_group,Db_name,Db_account,Db_instance,Upload,Task,MySQL_monitor
+from myapp.models import Db_group,Db_name,Db_account,Db_instance,Upload,Task,MySQL_monitor,Db_privileges,DB_priv_log
 from myapp.tasks import task_run,sendmail_task,parse_binlog,parse_binlogfirst
 from blacklist import blFunction as bc
+from myapp.include.mylib import DBTool
+from myapp.etc.config import opsdbuser
 from myapp.include.scheduled import get_dupreport
 
 
@@ -86,7 +88,7 @@ def mysql_query(request):
     #print request.user.username
     # print request.user.has_perm('myapp.can_mysql_query')
     try:
-        favword = request.COOKIES['myfavword']
+        favword = request.COOKIES['myfavword']  # get cookie_data: "myfavword=dfsfd;path=/;expires=Mon, 27 Nov 2017 05:10:16 GMT"
     except Exception,e:
         pass
     objlist = func.get_mysql_hostlist(request.user.username)
@@ -316,14 +318,17 @@ def mysql_exec(request):
                 a = sqlfilter.get_sql_detail(sqlfilter.sql_init_filter(a), 2)[0]
                 # form = AddForm(initial={'a': a})
             except Exception,e:
-                a='wrong'
+                # a ='wrong'
+                a = "Support SQL Type: 'insert', 'update', 'delete', 'create', 'alter','rename', 'drop', 'truncate', 'replace'"
             sql = a
             a = func.check_mysql_exec(a,request)
             #print request.POST
             if request.POST.has_key('commit'):
                 (data_mysql,collist,dbname) = func.run_mysql_exec(choosed_host,a,request.user.username,request)
+                print("mysql_exec:exec", data_mysql,'||', collist, '|', dbname)
             elif request.POST.has_key('check'):
                 data_mysql,collist,dbname = incept.inception_check(choosed_host,a)
+
             # return render(request,'mysql_exec.html',{'form': form,'objlist':objlist,'data_mysql':data_mysql,'collist':collist,'choosed_host':choosed_host,'dbname':dbname})
 
             return render(request, 'mysql_exec.html', locals())
@@ -386,7 +391,6 @@ def inception(request):
             upform = Uploadform()
             if form.is_valid():
                 a = form.cleaned_data['a']
-                print(">>>>>a:", a, upform)
 
                 # uploadform/addform add requested=False check
                 if len(a.strip()) == 0:
@@ -419,7 +423,7 @@ def inception(request):
             upform = Uploadform(request.POST,request.FILES)
             #c = request.POST['cx']
             if upform.is_valid() and request.FILES.has_key('filename'):
-                print(">>>>>upform.is_valid(): ",upform.is_valid())
+                #print(">>>>>upform.is_valid(): ",upform.is_valid())
                 # choosed_host = request.POST['cx']
                 sqltext=''
                 for chunk in request.FILES['filename'].chunks():
@@ -798,8 +802,205 @@ def update_task(request):
 #             str = "ID NOT EXISTS , PLEASE CHECK !"
 #             # return render(request, 'update_task.html', {'str': str})
 #             return render(request, 'update_task.html', locals())
+@login_required(login_url='/accounts/login/')
+def grant_privileges(request):
+    if request.user.has_perm('myapp.can_grant_db'):
+        #show every dbtags
+        #obj_list = func.get_mysql_hostlist(request.user.username,'log')
+        #show dbtags permitted to the user
+        obj_list = func.get_mysql_hostlist(request.user.username,'log')
+        optype_list = func.get_op_type()
+        mysql_privs = func.get_db_privs()
+        if request.method == 'POST' :
+            form = Logquery(request.POST)
+            # with_time_submit for search
+            if request.POST.has_key('with_time_submit'):
+                if form.is_valid():
+                    begintime = form.cleaned_data['begin']
+                    endtime = form.cleaned_data['end']
+                    hosttag = str(request.POST['hosttag']).strip()
+                    optype = request.POST['optype']
+                    addr, dbname, idc = func.get_instance_addr(hosttag)
 
+                    data = func.get_privileges_data(hosttag,optype,begintime,endtime)
+                    for item in data:
+                        item.grant_user_pwd = func.get_decrypt_pwd(item.grant_user_pwd)
 
+                    return render(request,'previliges/grant_privileges.html',{'form': form,'objlist':obj_list,'optypelist':optype_list,'datalist':data,'choosed_host':hosttag, 'mysql_privs': mysql_privs, 'addr': addr, 'dbname': dbname})
+            elif request.POST.has_key('confirm_add'):
+                hosttag = str(request.POST['ins_host_add']).strip()
+                data = func.get_privileges_data(hosttag)
+                for item in data:
+                    item.grant_user_pwd = func.get_decrypt_pwd(item.grant_user_pwd)
+                addr, dbname, idc = func.get_instance_addr(hosttag)
+
+                print("confirm_add>>>:", request.POST)
+                #post_data=request.POST.getlist('to[]')
+                pwd, enpwd = func.random_pwd()
+                try:
+                    grant_dbtag = request.POST['ins_host_add']
+                    grant_user = request.POST['grant_user_add']
+                    grant_ip = request.POST['grant_host_add']
+                    grant_privs = ','.join(request.POST.getlist('to[]'))
+                    grant_db = request.POST['grant_db_add']
+                    grant_tables=request.POST['grant_tbs_add']
+                    grant_user_pwd = pwd
+                    grant_comment=request.POST['remark']
+
+                    dbtool = DBTool(username=opsdbuser, password=func.get_mypd(),database='mysql', host=addr.split(':')[1], port=int(addr.split(':')[2]))
+                    print('>>>dbtool:',dbtool)
+                    print(">>>>dbtool parms:", opsdbuser,':', func.get_mypd(),':', addr.split(':')[1],',',int(addr.split(':')[2]))
+
+                    ret, status = func.add_new_priv(dbtool, grant_privs, grant_db, grant_tables, grant_user, grant_ip, grant_user_pwd, idc)
+                    if status == 'ok':
+                        priv = Db_privileges(grant_dbtag=request.POST['ins_host_add'],grant_user=request.POST['grant_user_add'],grant_ip=request.POST['grant_host_add'],
+                                             grant_privs=','.join(request.POST.getlist('to[]')),
+                                             grant_db=request.POST['grant_db_add'],grant_tables=request.POST['grant_tbs_add'],
+                                             grant_user_pwd=enpwd,grant_comment=request.POST['remark'],db_name_id=Db_name.objects.get(dbtag=hosttag).id)
+                        priv.save()
+                        #priv.db_name = Db_name.objects.get(dbtag=hosttag)
+                        priv_log = DB_priv_log(uname=request.user.username, action="add_new_priv", fkid_id=Db_privileges.objects.last().id)
+                        #priv_log.fkid = Db_privileges.objects.get(id=Db_privileges.objects.last().id)
+                        #print('>>>>>','grant_dbtag=',request.POST['ins_host_add'],'grant_user=',request.POST['grant_user_add'],'grant_ip=',request.POST['grant_host_add'],
+                        #                     'grant_privs=',','.join(request.POST.getlist('to[]')),
+                        #                     'grant_db=',request.POST['grant_db_add'],'grant_tables=',request.POST['grant_tbs_add'],
+                        #                     'grant_user_pwd=',pwd,'grant_comment=',request.POST['remark'])
+
+                        priv_log.save()
+                        # -- select privs_data again
+                        data = func.get_privileges_data(hosttag)
+                        for item in data:
+                            item.grant_user_pwd = func.get_decrypt_pwd(item.grant_user_pwd)
+                        # -- select privs_data again done
+                    else:
+                        return render(request,'previliges/grant_privileges.html',{'form': form,'objlist':obj_list,'optypelist':optype_list, 'datalist':data, 'choosed_host':hosttag, 'mysql_privs': mysql_privs, 'err_msg': ret, 'addr': addr, 'dbname': dbname})
+
+                except Exception as e:
+                    print("confirm_add error: ", e)
+                    return render(request,'previliges/grant_privileges.html',{'form': form,'objlist':obj_list,'optypelist':optype_list, 'datalist':data, 'choosed_host':hosttag, 'mysql_privs': mysql_privs, 'err_msg': e, 'addr': addr, 'dbname': dbname})
+                return render(request,'previliges/grant_privileges.html',{'form': form,'objlist':obj_list,'optypelist':optype_list, 'datalist':data, 'choosed_host':hosttag, 'mysql_privs': mysql_privs, 'addr': addr, 'dbname': dbname})
+
+            elif request.POST.has_key('confirm_modify'):
+                hosttag = str(request.POST['ins_host_add']).strip()
+                data = func.get_privileges_data(hosttag)
+                for item in data:
+                    item.grant_user_pwd = func.get_decrypt_pwd(item.grant_user_pwd)
+                addr, dbname, idc = func.get_instance_addr(hosttag)
+                try:
+                    grant_id = int(request.POST['confirm_modify'])
+                    grant_dbtag = request.POST['ins_host_add']
+                    grant_user = request.POST['grant_user_add']
+                    grant_ip = request.POST['grant_host_add']
+                    grant_privs = ','.join(request.POST.getlist('to[]'))
+                    grant_db = request.POST['grant_db_add']
+                    grant_tables=request.POST['grant_tbs_add']
+                    # grant_user_pwd = pwd
+                    grant_comment=request.POST['remark']
+
+                    dbtool = DBTool(username=opsdbuser, password=func.get_mypd(),database='mysql', host=addr.split(':')[1], port=int(addr.split(':')[2]))
+
+                    ret, status = func.modify_priv(dbtool, grant_id, grant_privs, grant_db, grant_tables, grant_user, grant_ip, grant_comment, idc)
+                except Exception as e:
+                    print("confirm_modify: ", e)
+
+                    return render(request,'previliges/grant_privileges.html',{'form': form,'objlist':obj_list,'optypelist':optype_list, 'datalist':data, 'choosed_host':hosttag, 'mysql_privs': mysql_privs, 'err_msg': e, 'addr': addr, 'dbname': dbname})
+                # -- succ
+                data = func.get_privileges_data(hosttag)
+                for item in data:
+                    item.grant_user_pwd = func.get_decrypt_pwd(item.grant_user_pwd)
+                # -- succ done
+                return render(request,'previliges/grant_privileges.html',{'form': form,'objlist':obj_list,'optypelist':optype_list, 'datalist':data, 'choosed_host':hosttag, 'mysql_privs': mysql_privs, 'err_msg': ret, 'addr': addr, 'dbname': dbname})
+
+            elif request.POST.has_key('confirm_add_ip'):
+                print(">>>>>add_ip:", request.POST)
+                hosttag = str(request.POST['ins_host_add']).strip()
+                data = func.get_privileges_data(hosttag)
+                for item in data:
+                    item.grant_user_pwd = func.get_decrypt_pwd(item.grant_user_pwd)
+                addr, dbname, idc = func.get_instance_addr(hosttag)
+
+                try:
+                    grant_id = int(request.POST['confirm_add_ip'])
+                    grant_user = request.POST['grant_user_add']
+                    grant_ip = request.POST['grant_host_add']
+                    grant_comment = request.POST['remark']
+
+                    dbtool = DBTool(username=opsdbuser, password=func.get_mypd(),database='mysql', host=addr.split(':')[1], port=int(addr.split(':')[2]))
+
+                    ret, status = func.confirm_add_ip(dbtool, grant_id, hosttag, grant_user, grant_ip, grant_comment)
+                except Exception as e:
+                    print("confirm_add_ip: ", e)
+                    return render(request,'previliges/grant_privileges.html',{'form': form,'objlist':obj_list,'optypelist':optype_list, 'datalist':data, 'choosed_host':hosttag, 'mysql_privs': mysql_privs, 'err_msg': e, 'addr': addr, 'dbname': dbname})
+                # -- succ
+                data = func.get_privileges_data(hosttag)
+                for item in data:
+                    item.grant_user_pwd = func.get_decrypt_pwd(item.grant_user_pwd)
+                # -- succ done
+                return render(request,'previliges/grant_privileges.html',{'form': form,'objlist':obj_list,'optypelist':optype_list, 'datalist':data, 'choosed_host':hosttag, 'mysql_privs': mysql_privs, 'err_msg': ret, 'addr': addr, 'dbname': dbname})
+
+            elif request.POST.has_key('confirm_update_pwd'):
+                print(">>>> confirm_update_pwd: ", request.POST)
+                hosttag = str(request.POST['ins_host_add']).strip()
+                data = func.get_privileges_data(hosttag)
+                for item in data:
+                    item.grant_user_pwd = func.get_decrypt_pwd(item.grant_user_pwd)
+                addr, dbname, idc = func.get_instance_addr(hosttag)
+
+                dbtool = DBTool(username=opsdbuser, password=func.get_mypd(),database='mysql', host=addr.split(':')[1], port=int(addr.split(':')[2]))
+
+                try:
+                    grant_id = int(request.POST['confirm_update_pwd'])
+                    grant_user = request.POST['grant_user_add']
+                    grant_ip = request.POST['grant_host_add']
+                    grant_comment = request.POST['remark']
+                    update_user_pwd = request.POST['update_pwd_add']
+
+                    dbtool = DBTool(username=opsdbuser, password=func.get_mypd(),database='mysql', host=addr.split(':')[1], port=int(addr.split(':')[2]))
+
+                    ret, status = func.confirm_update_pwd(dbtool, grant_id, hosttag, grant_user, grant_ip, update_user_pwd,grant_comment)
+                except Exception as e:
+                    print("confirm_update_pwd: ", e)
+                    return render(request,'previliges/grant_privileges.html',{'form': form,'objlist':obj_list,'optypelist':optype_list, 'datalist':data, 'choosed_host':hosttag, 'mysql_privs': mysql_privs, 'err_msg': e, 'addr': addr, 'dbname': dbname})
+
+                # -- succ
+                data = func.get_privileges_data(hosttag)
+                for item in data:
+                    item.grant_user_pwd = func.get_decrypt_pwd(item.grant_user_pwd)
+                # -- succ done
+                return render(request,'previliges/grant_privileges.html',{'form': form,'objlist':obj_list,'optypelist':optype_list, 'datalist':data, 'choosed_host':hosttag, 'mysql_privs': mysql_privs, 'err_msg': ret, 'addr': addr, 'dbname': dbname})
+
+            elif request.POST.has_key('delete'):
+                print(">>>> delete :", request.POST)
+                hosttag = str(request.POST['ins_host_add']).strip()
+                data = func.get_privileges_data(hosttag)
+                for item in data:
+                    item.grant_user_pwd = func.get_decrypt_pwd(item.grant_user_pwd)
+                addr, dbname, idc = func.get_instance_addr(hosttag)
+
+                try:
+                    grant_id = int(request.POST['grant_id'])
+
+                    dbtool = DBTool(username=opsdbuser, password=func.get_mypd(),database='mysql', host=addr.split(':')[1], port=int(addr.split(':')[2]))
+
+                    ret, status = func.confirm_delete(dbtool, grant_id, hosttag)
+                except Exception as e:
+                    print("confirm_update_pwd: ", e)
+                    return render(request,'previliges/grant_privileges.html',{'form': form,'objlist':obj_list,'optypelist':optype_list, 'datalist':data, 'choosed_host':hosttag, 'mysql_privs': mysql_privs, 'err_msg': e, 'addr': addr, 'dbname': dbname})
+
+                # -- succ
+                data = func.get_privileges_data(hosttag)
+                for item in data:
+                    item.grant_user_pwd = func.get_decrypt_pwd(item.grant_user_pwd)
+                # -- succ done
+                return render(request,'previliges/grant_privileges.html',{'form': form,'objlist':obj_list,'optypelist':optype_list, 'datalist':data, 'choosed_host':hosttag, 'mysql_privs': mysql_privs, 'err_msg': ret, 'addr': addr, 'dbname': dbname})
+
+            else:
+                print "not valid"
+                return render(request,'previliges/grant_privileges.html',{'form': form,'objlist':obj_list,'optypelist':optype_list, 'mysql_privs': mysql_privs})
+        else:
+            addr, dbname, idc = func.get_instance_addr(obj_list[0])
+            form = Logquery()
+            return render(request, 'previliges/grant_privileges.html', {'form': form,'objlist':obj_list,'optypelist':optype_list, 'mysql_privs': mysql_privs, 'addr':addr, 'dbname': dbname})
 
 @login_required(login_url='/accounts/login/')
 def pre_query(request):
@@ -1374,7 +1575,7 @@ def tb_check(request):
 def dupkey_check(request):
     # ins_li=get_dupreport_all()
     # print ins_li
-    objlist = func.get_mysql_hostlist(request.user.username, 'meta')
+    objlist = func.get_mysql_hostlist(request.user.username, 'meta')   # read/all/write role instance
     if request.method == 'POST':
         choosed_host = request.POST['choosed']
         if request.POST.has_key('dupkey'):

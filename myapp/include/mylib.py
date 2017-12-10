@@ -12,8 +12,7 @@
 #from _mysql import escape_string
 from  MySQLdb import escape_string
 import MySQLdb
-from myapp.etc.config import opsdbpwd
-from myapp.include.encrypt import prpcrypt
+
 
 def escape(sql):
 

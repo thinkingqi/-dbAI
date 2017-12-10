@@ -7,7 +7,7 @@
 {% endblock %}
 {%block content%}
     <form role="form" method='post'>
-        <table >
+        <table style="width: 80%">
             <tr>
                 <td>
                     </br>
@@ -309,7 +309,7 @@
             </div>
 
             <div class="modal fade" id="myModal"  style="width:50%;" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-lg">
+                <div class="modal-dialog modal-lg" style="width: 700px">
                     <form role="form" action="" method="post">
                         {% csrf_token %}
                         <div class="modal-content">
@@ -322,7 +322,7 @@
                                 <div class="form-group">
                                     <div class="row">
                                         <div  class="col-md-12">
-                                            <table id="myTb"  class="table table-bordered" width="100%" style="table-layout:fixed;">
+                                            <table id="myTb"  class="table table-bordered" style="table-layout:fixed;">
                                                 {#                                                 <table id="myTb"   border="0" cellspacing="1" style="background-color:#a0c6e5">#}
                                                 {#                                                    <td style="overflow-x: auto;" noWrap>#}
                                                 {#                                                        <p id="list_result"></p>#}
@@ -411,7 +411,7 @@
                 keyboard: false,
                 show: false,
                 backdrop:false
-            })
+            });
             $(document).on("click",'.backup_sql', function() {
                 {#            $('.backup_sql').on('click',function() {#}
                 var sequenceid = $(this).attr("value");

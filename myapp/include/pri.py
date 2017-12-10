@@ -440,6 +440,7 @@ def init_ugroup():
             setpri = ['can_set_pri']
             querypri = ['can_query_pri']
             mysql_adminli = ['can_see_mysqladmin']
+            grant_privsli = ['can_grant_db', 'can_modify_priv']
             set_group('mysql-manage', mysql_adminli)
             set_group('mysql-exec-dml',dmlli)
             set_group('mongodb-query', mongoQueryli)
@@ -455,6 +456,7 @@ def init_ugroup():
             set_group('mysql-pri-query', querypri)
             set_group('mysql-task-upload', incli)
             set_group('salt-admin', saltli)
+            set_group('grant-privs',grant_privsli)
         except Exception,e:
             pass
 

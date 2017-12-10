@@ -66,6 +66,8 @@
                     <ul class="dropdown-menu">
 
                         {% if perms.myapp.can_set_pri or perms.myapp.can_query_pri %}
+                            <li><a href="{% url 'grant_privileges' %}">后端DB授权</a></li>
+                            <li role="presentation" class="divider"></li>
                             <li><a href="{% url 'pre_query' %}">权限查询</a></li>
                         {% endif %}
                         {% if perms.myapp.can_set_pri %}
@@ -98,7 +100,7 @@
                         </ul>
                     </li>
                 {% endif %}
-                <li class="dropdown">
+                <!--li class="dropdown">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                         LIFE
                         <b class="caret"></b>
@@ -106,7 +108,7 @@
                     <ul class="dropdown-menu">
                         <li><a href="{% url 'map' %}">地图查询</a></li>
                     </ul>
-                </li>
+                </li-->
 
             </ul>
 

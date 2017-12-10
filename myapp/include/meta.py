@@ -269,7 +269,7 @@ def get_his_meta(dbtag,flag):
         a.DBTAG=b.DBTAG ) c order by 5 desc ,2 desc limit 10"
 
     elif flag ==6:
-        sql = "select TABLE_NAME ,ROUND(AUTO_INCREMENT/MAX_VALUE*100,1),DBTAG as 'used_percent' from mon_autoinc_status order by AUTO_INCREMENT/MAX_VALUE desc limit 10"
+        sql = "select TABLE_NAME ,ROUND(AUTO_INCREMENT*100/MAX_VALUE,2),DBTAG as 'used_percent' from mon_autoinc_status order by AUTO_INCREMENT/MAX_VALUE desc limit 10"
     return mysql_query(sql, func.user, func.passwd, func.host, int(func.port), func.dbname)
 
 def get_hist_dbinfo(dbtag,day):

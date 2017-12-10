@@ -11,6 +11,7 @@ from mypro.settings import EMAIL_SENDER
 def process_runtask(hosttag,sqltext,mytask):
     flag = (1 if mytask.backup_status == 1 else 3)
     results,col,tar_dbname = incept.inception_check(hosttag,sqltext,flag)
+    print(">>>>>process_runtask:", results, '||', col, '||', tar_dbname)
     status='executed'
     c_time = mytask.create_time
     mytask.update_time = datetime.datetime.now()
@@ -56,7 +57,11 @@ def parse_binlog(insname,binname,begintime,tbname,dbselected,username,countnum,f
                                       only_tables=tbname, nopk=False, flashback=flash_back, stopnever=False,countnum=countnum)
     binlogsql.process_binlog()
     sqllist = binlogsql.sqllist
-    sendmail_sqlparse.delay(username, dbselected, tbname, sqllist,flash_back)
+    try:
+        #print(">>>>>>username,dbselected, tbname, sqllist,flash_back", username, dbselected, tbname, sqllist,flash_back)
+        sendmail_sqlparse.delay(username, dbselected, tbname, sqllist,flash_back)
+    except Exception as e:
+        print(">>>>>>>sendmail_sqlparse_e:", e)
 
 
 def parse_binlogfirst(insname,binname,countnum):
@@ -79,9 +84,6 @@ def parse_binlogfirst(insname,binname,countnum):
     binlogsql.process_binlog()
     sqllist = binlogsql.sqllist
     return sqllist
-
-
-
 
 @task
 def sendmail_sqlparse(user,db,tb,sqllist,flashback):
@@ -133,12 +135,6 @@ def sendmail (title,mailto,html_content):
         msg.send()
     except Exception,e:
         print e
-
-
-
-
-
-
 
 def task_run(idnum,request):
     while 1:

@@ -11,12 +11,12 @@
             {% csrf_token %}
             {% include "include/sidebar.html" %}
             <div id="page-content-wrapper">
-                <table >
+                <table style="width: 100%">
                     </br>
                     </br>
                     CHOOSE :
                     <tr>
-                        <td>
+                        <td style="width: 48%">
 
                             <select class="form-control col-md-1" name = "cx">
                                 {% for obj in objlist %}
@@ -34,7 +34,7 @@
 
                         </td>
 
-                        <td>
+                        <td style="width: 48%">
                             {% if table_se %}
                                 <input type=="text" class="form-control" maxlength="30" placeholder="search for table_name" value="{{ table_se }}" name="searchname">
                             {% else %}

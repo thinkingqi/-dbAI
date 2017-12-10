@@ -5,6 +5,9 @@ from myapp.include import function as func
 from myapp.models import Db_name,Db_account,Db_instance,Oper_log,Task,Incep_error_log
 from myapp.etc import config
 from mypro import settings
+from django.core.mail import EmailMessage,send_mail,EmailMultiAlternatives
+from mypro.settings import EMAIL_SENDER
+from django.template import loader
 reload(sys)
 sys.setdefaultencoding('utf8')
 from django.db import connection, connections
@@ -74,10 +77,15 @@ incept_backup_port = config.incept_backup_port
 incept_backup_user = config.incept_backup_user
 incept_backup_passwd = config.incept_backup_passwd
 
+import socket
 
 
 #0 for check and 1 for execute
 def incep_exec(sqltext,myuser,mypasswd,myhost,myport,mydbname,flag=0):
+    # parse rds NAME TO ip
+    if len(myhost) > 15:
+        myhost = socket.gethostbyname(myhost)
+    # parse rds NAME TO ip done
     pc = prpcrypt()
     if (int(flag)==0):
         flagcheck='--enable-check'
@@ -102,6 +110,7 @@ def incep_exec(sqltext,myuser,mypasswd,myhost,myport,mydbname,flag=0):
         cur=conn.cursor()
         ret=cur.execute(sql)
         result=cur.fetchall()
+        print(">>>>>inception_result:", result)
         #num_fields = len(cur.description)
         field_names = [i[0] for i in cur.description]
         #print field_names
@@ -142,8 +151,13 @@ def inception_check(hosttag,sql,flag=0):
             break
     #print tar_port+tar_passwd+tar_username+tar_host
     try:
+        # parse rds NAME TO ip
+        import socket
+        if len(tar_host) > 15:
+            tar_host = socket.gethostbyname(tar_host)
+        # parse rds NAME TO ip done
         results,col = incep_exec(sql,tar_username,tar_passwd,tar_host,tar_port,tar_dbname,flag)
-        print(">>>>results,col:", results, col)
+        #print(">>>>results,col:", results, col)
         return results,col,tar_dbname
     except Exception,e:
         wrongmsg = "select \"no admin account being setted\""
@@ -314,6 +328,15 @@ def delete_task(idnum):
     if task.status!='executed' and task.status!='running':
         task.delete()
 
+
+def sendmail (title,mailto,html_content):
+    try:
+        msg = EmailMultiAlternatives(title, html_content, EMAIL_SENDER, mailto)
+        msg.attach_alternative(html_content, "text/html")
+        msg.send()
+    except Exception,e:
+        print e
+
 #add task to tasktable
 def record_task(request,sqltext,dbtag,specify,ifbackup):
     username = request.user.username
@@ -322,8 +345,18 @@ def record_task(request,sqltext,dbtag,specify,ifbackup):
     create_time = datetime.datetime.now()
     update_time = datetime.datetime.now()
     status='NULL'
-    mytask = Task (user=username,sqltext=sqltext,create_time=create_time,update_time=update_time,dbtag=dbtag,status=status,specification=specify,backup_status=ifbackup)
+    mytask = Task(user=username,sqltext=sqltext,create_time=create_time,update_time=update_time,dbtag=dbtag,status=status,specification=specify,backup_status=ifbackup)
     mytask.save()
+    # add for new task sendmail
+    try:
+        mailto=[]
+        title = "New Task received from: " + mytask.user
+        mailto.extend(config.dbamails)
+        html_content = loader.render_to_string('include/mail_template.html', locals())
+        sendmail(title, mailto, html_content)
+    except Exception as e:
+        print("sendmail for new task failed, TaskId: {}:{}".format(mytask.id, e))
+    # done
     return 1
 
 
@@ -373,6 +406,7 @@ def log_incep_op(sqltext,dbtag,request,mycreatetime):
 def get_db_info(hosttag):
     a = Db_name.objects.get(dbtag=hosttag)
     tar_dbname = a.dbname
+    pc = prpcrypt()
     try:
         if a.instance.all().filter(role='write')[0]:
             tar_host = a.instance.all().filter(role='write')[0].ip
@@ -386,7 +420,7 @@ def get_db_info(hosttag):
     for i in a.db_account_set.all():
         if i.role == 'admin':
             tar_username = i.user
-            tar_passwd = i.passwd
+            tar_passwd = pc.decrypt(i.passwd)  #  i.passwd
             break
     return tar_username, tar_passwd, tar_host,  tar_port,tar_dbname
 
@@ -429,7 +463,7 @@ def task_running_status(idnum):
     task = Task.objects.get(id=idnum)
     if task.status=='executed failed'or task.status=='executed':
         data = Incep_error_log.objects.filter(create_time=task.create_time).filter(finish_time=task.update_time).order_by("-myid")
-        col =[f.name for f in Incep_error_log._meta.get_fields()]
+        col =[f.name for f in Incep_error_log._meta.get_fields()]    # get tb columns/fields
         #delete first element "ID"
         del col[0]
         return data,col
@@ -438,6 +472,7 @@ def task_running_status(idnum):
         if text=='':
             try:
                 tar_username, tar_passwd, tar_host,  tar_port,tar_dbname = get_db_info(task.dbtag)
+                print(">>>>>>>",tar_username, tar_passwd, tar_host,  tar_port,tar_dbname)
                 sql = "select * from information_schema.processlist where Db='" + tar_dbname + "'" + " and USER='" + tar_username + "' order by TIME desc"
                 return func.mysql_query(sql, tar_username, tar_passwd, tar_host, int(tar_port), 'information_schema')
             except Exception,e:

@@ -60,13 +60,13 @@
     {% if datalist %}
         {% include "include/pagejump/pagebutton.html" %}
     {% endif %}
-    <table id="mytable" class="table table-condensed" border="1">
+    <table id="mytable" class="table table-condensed" border="1"> <!--style="word-wrap:break-word; word-break:break-all;"-->
         <thead>
         <tr class="danger">
             <th>USER</th>
             <th>DBTAG</th>
             <th>DBNAME</th>
-            <th>SQLTEXT</th>
+            <th style="width: 30% ;">SQLTEXT</th>
             <th>CREATE_TIME</th>
             <th>LOGIN_IP</th>
             <th>LOGIN_TIME</th>

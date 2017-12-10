@@ -200,5 +200,45 @@
         </tbody>
     </table>
 {% endif %}
+
+{% if mytask %}
+    NEW TASK RECEIVED :
+    <table id="mytable1" class="table table-condensed" border="1">
+        <thead>
+        <tr class="danger">
+            <th> id </th>
+            <th> user </th>
+            <th> dbtag </th>
+            <th> sqltext </th>
+            <th> create_time </th>
+            <th> update_time </th>
+            <th> status </th>
+            <th> sqlsha </th>
+            <th> specification </th>
+            <th> operator </th>
+            <th> backup_status </th>
+        </tr>
+        </thead>
+        <tbody  >
+        {#% for item in result_status %#}
+            <tr>
+                <td> {{ mytask.id }}</td>
+                <td> {{ mytask.user }}</td>
+                <td> {{ mytask.dbtag }}</td>
+                <td> {{ mytask.sqltext }}</td>
+                <td> {{ mytask.create_time|date:"Y-m-d H:i:s" }}</td>
+                <td> {{ mytask.update_time|date:"Y-m-d H:i:s" }}</td>
+                <td> {{ mytask.status }}</td>
+                <td> {{ mytask.sqlsha}}</td>
+                <td> {{ mytask.specification }}</td>
+                <td> {{ mytask.operator }}</td>
+                <td> {{ mytask.backup_status }}</td>
+            </tr>
+        {#% endfor %#}
+        </tbody>
+    </table>
+{% endif %}
+
+
 </body>
 </html>

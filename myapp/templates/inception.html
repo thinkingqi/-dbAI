@@ -6,12 +6,12 @@
     欢迎使用MySQL数据库语句审核功能
 {% endblock %}
 {%block content%}
-    <table >
+    <table>
         <tr>
             <td>
                 </br>
                 </br>
-                <form role="form" method='post' enctype="multipart/form-data" >
+                <form role="form" method='post' enctype="multipart/form-data">
                     {% csrf_token %}
                     CHOOSE :
                     {%  if choosed_host %}
@@ -58,7 +58,7 @@
                     {% if upload_btn == 1 %}
                         <strong> <span style="color:red"> 请选择要检测的sql文件!^_^</br> </span></strong>
                     {% endif %}
-                    <input type=="text" maxlength="30" class="form-control" placeholder="执行说明，可选，最多30字" name="specification">
+                    <input type=="text" maxlength="30" class="form-control" placeholder="执行说明，可选，最少5个字,最多30字" name="specification">
                     <span class="glyphicon glyphicon-apple" > 提交任务时请选择是否需要备份执行</span>
                     <select class="form-control"  name="ifbackup">
                         {% if needbackup %}
@@ -76,7 +76,7 @@
                     </select>
                     <button type="submit" name='check' class="btn btn-primary">审核</button >
                     <button type="submit" name='upload' class="btn btn-warning">脚本上传</button >
-                    <button type="submit" name='addtask' onclick="check_id_a()" class="btn btn-danger">提交任务</button >
+                    <button type="submit" name='addtask' onclick="return check_id_a()" class="btn btn-danger">提交任务</button >
 
                 </form >
             </td>

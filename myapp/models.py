@@ -20,7 +20,7 @@ db_type = (
 )
 
 class Db_instance(models.Model):
-    ip = models.CharField(max_length=30)
+    ip = models.CharField(max_length=80)
     port = models.CharField(max_length=10)
     role =  models.CharField(max_length=30,choices=read_write, )
     db_type = models.CharField(max_length=30,default='mysql')
@@ -44,7 +44,7 @@ class Db_account(models.Model):
     user = models.CharField(max_length=30)
     passwd = models.CharField(max_length=255)
     role =  models.CharField(max_length=30,choices=read_write_account,default='all')
-    tags = models.CharField(max_length=30,db_index=True)
+    tags = models.CharField(max_length=50,db_index=True)
     dbname = models.ManyToManyField(Db_name)
     account = models.ManyToManyField(User)
     def __unicode__(self):
@@ -114,6 +114,8 @@ class User_profile(models.Model):
                       ('can_query_pri', 'can query pri'),
                       ('can_set_pri', 'can set pri'),
                       ('can_oper_saltapi', 'can oper saltapi'),
+                      ('can_grant_db', 'can grant db'),
+                      ('can_modify_priv', 'can modify priv')
                       )
 
 class Upload(models.Model):
@@ -181,3 +183,29 @@ class MySQL_monitor(models.Model):
         return self.tag
     class Meta:
         db_table = 'mysql_monitor'
+
+class Db_privileges(models.Model):
+    id=models.AutoField(primary_key=True)
+    grant_dbtag=models.CharField(max_length=30)
+    grant_user=models.CharField(max_length=20)
+    grant_ip=models.CharField(max_length=15)
+    grant_privs=models.CharField(max_length=300)
+    grant_db=models.CharField(max_length=20)
+    grant_tables=models.CharField(max_length=1000)
+    grant_user_pwd=models.CharField(max_length=80)
+    create_time=models.DateTimeField(auto_now=True, db_index=True)
+    modify_time=models.DateTimeField(auto_now_add=True)
+    grant_status=models.SmallIntegerField(default=1)  # 1:active 0:inactive
+    grant_comment=models.CharField(max_length=200)
+    db_name=models.ForeignKey(Db_name, on_delete=models.SET('deleted'))
+    def __unicode__(self):
+        return self.db_name.dbtag
+
+class DB_priv_log(models.Model):
+    id=models.AutoField(primary_key=True)
+    uname=models.CharField(max_length=30,db_index=True)
+    action=models.CharField(max_length=30)
+    create_time=models.DateTimeField(auto_now=True, db_index=True)
+    fkid=models.ForeignKey(Db_privileges, on_delete=models.SET('deleted'))
+    def __unicode__(self):
+        return self.fkid.id, self.fkid.grant_dbtag

@@ -56,7 +56,7 @@ def get_inc_usedrate():
     for i in results:
         try:
             collist.append(i[2]+ "\n"+ i[0])
-            datalist.append(int(i[1]))
+            datalist.append(float(i[1]))
         except Exception,e:
             pass
     return datalist, collist
