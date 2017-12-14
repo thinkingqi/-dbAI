@@ -209,3 +209,10 @@ class DB_priv_log(models.Model):
     fkid=models.ForeignKey(Db_privileges, on_delete=models.SET('deleted'))
     def __unicode__(self):
         return self.fkid.id, self.fkid.grant_dbtag
+
+class Db_user_pwd(models.Model):
+    id=models.AutoField(primary_key=True)
+    user = models.OneToOneField(User)
+    pwd=models.CharField(max_length=30)
+    def __unicode__(self):
+        return self.user.username, self.pwd

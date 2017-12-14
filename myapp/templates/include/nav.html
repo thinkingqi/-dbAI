@@ -26,15 +26,15 @@
                     </ul>
                 </li>
 
-                <li class="dropdown">
+                <!--li class="dropdown">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                         Mongodb
                         <b class="caret"></b>
                     </a>
                     <ul class="dropdown-menu">
-                        <li><a href="{% url 'mongodb_query' %}">Mongodb查询</a></li>
+                        <li><a href="{#% url 'mongodb_query' %#}">Mongodb查询</a></li>
                     </ul>
-                </li>
+                </li-->
 
                 <li class="dropdown">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">
@@ -88,13 +88,13 @@
 
                     <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                            SALT管理
+                            ANSIBLE管理
                             <b class="caret"></b>
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a href="{% url 'salt_exec' %}">SALT命令执行</a></li>
+                            <li><a href="{% url 'salt_exec' %}">Ansible命令执行</a></li>
                             <li><a href="{% url 'hardware_info' %}">硬件信息</a></li>
-                            <li><a href="{% url 'key_con' %}">KEY管理</a></li>
+                            <li><a href="{% url 'key_con' %}">PUBKEY管理</a></li>
                             <li><a href="{% url 'hist_salt' %}">历史任务</a></li>
                             {#                            <li role="presentation" class="divider"></li>#}
                         </ul>
@@ -106,7 +106,7 @@
                         <b class="caret"></b>
                     </a>
                     <ul class="dropdown-menu">
-                        <li><a href="{% url 'map' %}">地图查询</a></li>
+                        <li><a href="{#% url 'map' %#}">地图查询</a></li>
                     </ul>
                 </li-->
 

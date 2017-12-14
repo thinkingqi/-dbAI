@@ -31,7 +31,12 @@ def process_runtask(hosttag,sqltext,mytask):
                          create_time=c_time,finish_time=mytask.update_time)
             inclog.save()
         if (int(row[2])!=0):
-            status='executed failed'
+            # add
+            if 'Warning, Code 1051' in row[4]:  # drop table if exists xx; errormessage: #1 Execute(Warning, Code 1051):Unknown table 'xxxx'
+                pass
+            # add done
+            else:
+                status='executed failed'
             #record error message of incept exec
     mytask.status = status
     mytask.save()

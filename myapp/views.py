@@ -11,7 +11,7 @@ from django.http import HttpResponse,HttpResponseRedirect,StreamingHttpResponse,
 from django.contrib.auth.decorators import login_required,permission_required
 from django.contrib.auth.models import User,Permission,ContentType,Group
 from myapp.include import function as func,inception as incept,chart,pri,meta,sqlfilter
-from myapp.models import Db_group,Db_name,Db_account,Db_instance,Upload,Task,MySQL_monitor,Db_privileges,DB_priv_log
+from myapp.models import Db_group,Db_name,Db_account,Db_instance,Upload,Task,MySQL_monitor,Db_privileges,DB_priv_log,Db_user_pwd
 from myapp.tasks import task_run,sendmail_task,parse_binlog,parse_binlogfirst
 from blacklist import blFunction as bc
 from myapp.include.mylib import DBTool
@@ -1644,9 +1644,18 @@ def pass_reset(request):
         try:
         # newpasswd = request.POST['passwd'].strip()
             tmp = User.objects.get(username=request.user.username)
-            tmp.set_password(request.POST['passwd'].strip())
+            p = request.POST['passwd'].strip()
+            tmp.set_password(p)
             tmp.save()
             info = "reset passwd ok"
+            # save pwd
+            try:
+                u = User.objects.get(username=request.user.username)
+                newpwd = Db_user_pwd(user=u,pwd=p)
+                newpwd.save()
+            except Exception as e:
+                print("change pwd save failed {}".format(str(e)))
+            # save pwd done
             return render(request, 'previliges/pass_reset.html', locals())
         except:
             info = "reset passwd failed"

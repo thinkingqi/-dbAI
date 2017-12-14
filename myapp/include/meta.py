@@ -223,7 +223,7 @@ def check_selfsql(selfsql):
         selfsql = "select 'please input'"
         return selfsql
     elif selfsql.split()[0].lower() not in ['set','show','select','create','purge','drop','purge','insert','update','delete','rename'] :
-        selfsql = "select 'selfsql not allowed'"
+        selfsql = "select 'selfsql not allowed. Allow SQLType: set|show|select|create|purge|drop|purge|insert|update|delete|rename'"
     return  selfsql
 
 

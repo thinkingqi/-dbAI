@@ -91,6 +91,7 @@
 
                 <strong> <span style="color:red">{{ info }}</span></strong>
                 <hr/>
+
                 <strong> <span style="color:red">SELF DB_SET</span></strong>
                 <table>
                     <tr>
@@ -104,9 +105,11 @@
                         </td>
                     </tr>
                     <tr>
+                        {% if perms.myapp.can_truncate_mysql and perms.myapp.can_drop_mysql %}
                         <td>
                             <button type="submit" name='execute' class="btn btn-danger" value="1">执行</button >
                         </td>
+                        {% endif %} <!--if trancate_mysql/drop_mysql for mysql_manager.html button execute; like MySQL_EXEC-->
                 </table>
 
 

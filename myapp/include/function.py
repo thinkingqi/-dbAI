@@ -527,7 +527,7 @@ def get_privileges_data(dbtag,optype=None,begin=None,end=None):
             log = Db_privileges.objects.filter(grant_dbtag=dbtag).filter(sqltype=optype).filter(create_time__lte=end).order_by("-create_time")[0:100]
     return log
 
-# ADD QHS
+# add
 def get_instance_addr(dbtag):
     instance = Db_instance.objects.filter(db_name__dbtag=dbtag)
     dbn = Db_name.objects.filter(dbtag=dbtag)

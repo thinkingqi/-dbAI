@@ -5,9 +5,9 @@ from myapp.include import function as func
 from myapp.models import Db_name,Db_account,Db_instance,Oper_log,Task,Incep_error_log
 from myapp.etc import config
 from mypro import settings
-from django.core.mail import EmailMessage,send_mail,EmailMultiAlternatives
-from mypro.settings import EMAIL_SENDER
-from django.template import loader
+#from django.core.mail import EmailMessage,send_mail,EmailMultiAlternatives
+#from mypro.settings import EMAIL_SENDER
+#from django.template import loader
 reload(sys)
 sys.setdefaultencoding('utf8')
 from django.db import connection, connections
@@ -329,13 +329,13 @@ def delete_task(idnum):
         task.delete()
 
 
-def sendmail (title,mailto,html_content):
-    try:
-        msg = EmailMultiAlternatives(title, html_content, EMAIL_SENDER, mailto)
-        msg.attach_alternative(html_content, "text/html")
-        msg.send()
-    except Exception,e:
-        print e
+# def sendmail (title,mailto,html_content):
+#     try:
+#         msg = EmailMultiAlternatives(title, html_content, EMAIL_SENDER, mailto)
+#         msg.attach_alternative(html_content, "text/html")
+#         msg.send()
+#     except Exception,e:
+#         print e
 
 #add task to tasktable
 def record_task(request,sqltext,dbtag,specify,ifbackup):
@@ -348,14 +348,14 @@ def record_task(request,sqltext,dbtag,specify,ifbackup):
     mytask = Task(user=username,sqltext=sqltext,create_time=create_time,update_time=update_time,dbtag=dbtag,status=status,specification=specify,backup_status=ifbackup)
     mytask.save()
     # add for new task sendmail
-    try:
-        mailto=[]
-        title = "New Task received from: " + mytask.user
-        mailto.extend(config.dbamails)
-        html_content = loader.render_to_string('include/mail_template.html', locals())
-        sendmail(title, mailto, html_content)
-    except Exception as e:
-        print("sendmail for new task failed, TaskId: {}:{}".format(mytask.id, e))
+    # try:
+    #     mailto=[]
+    #     title = "New Task received from: " + mytask.user
+    #     mailto.extend(config.dbamails)
+    #     html_content = loader.render_to_string('include/mail_template.html', locals())
+    #     sendmail(title, mailto, html_content)
+    # except Exception as e:
+    #     print("sendmail for new task failed, TaskId: {}:{}".format(mytask.id, e))
     # done
     return 1
 
