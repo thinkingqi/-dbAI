@@ -838,35 +838,42 @@ def grant_privileges(request):
                 #post_data=request.POST.getlist('to[]')
                 pwd, enpwd = func.random_pwd()
                 try:
-                    grant_dbtag = request.POST['ins_host_add']
-                    grant_user = request.POST['grant_user_add']
-                    grant_ip = request.POST['grant_host_add']
+                    grant_dbtag = request.POST['ins_host_add'].strip()
+                    grant_user = request.POST['grant_user_add'].strip()
+                    grant_ip = request.POST['grant_host_add'].strip()
                     grant_privs = ','.join(request.POST.getlist('to[]'))
-                    grant_db = request.POST['grant_db_add']
-                    grant_tables=request.POST['grant_tbs_add']
+                    grant_db = request.POST['grant_db_add'].strip()
+                    grant_tables=request.POST['grant_tbs_add'].strip()
                     grant_user_pwd = pwd
-                    grant_comment=request.POST['remark']
+                    grant_comment=request.POST['remark'].strip()
+
+                    # Current NOT support grant_db = '*' check grant_db
+                    if grant_db == '*':
+                        ret = 'Grant_db equal "*" not support current,Please give DB_NAME.'
+                        return render(request,'previliges/grant_privileges.html',{'form': form,'objlist':obj_list,'optypelist':optype_list, 'datalist':data, 'choosed_host':hosttag, 'mysql_privs': mysql_privs, 'err_msg': ret, 'addr': addr, 'dbname': dbname})
+                    # check done
 
                     dbtool = DBTool(username=opsdbuser, password=func.get_mypd(),database='mysql', host=addr.split(':')[1], port=int(addr.split(':')[2]))
                     print('>>>dbtool:',dbtool)
-                    print(">>>>dbtool parms:", opsdbuser,':', func.get_mypd(),':', addr.split(':')[1],',',int(addr.split(':')[2]))
+                    #print(">>>>dbtool parms:", opsdbuser,':', func.get_mypd(),':', addr.split(':')[1],',',int(addr.split(':')[2]))
 
                     ret, status = func.add_new_priv(dbtool, grant_privs, grant_db, grant_tables, grant_user, grant_ip, grant_user_pwd, idc)
                     if status == 'ok':
-                        priv = Db_privileges(grant_dbtag=request.POST['ins_host_add'],grant_user=request.POST['grant_user_add'],grant_ip=request.POST['grant_host_add'],
-                                             grant_privs=','.join(request.POST.getlist('to[]')),
-                                             grant_db=request.POST['grant_db_add'],grant_tables=request.POST['grant_tbs_add'],
-                                             grant_user_pwd=enpwd,grant_comment=request.POST['remark'],db_name_id=Db_name.objects.get(dbtag=hosttag).id)
-                        priv.save()
-                        #priv.db_name = Db_name.objects.get(dbtag=hosttag)
-                        priv_log = DB_priv_log(uname=request.user.username, action="add_new_priv", fkid_id=Db_privileges.objects.last().id)
-                        #priv_log.fkid = Db_privileges.objects.get(id=Db_privileges.objects.last().id)
-                        #print('>>>>>','grant_dbtag=',request.POST['ins_host_add'],'grant_user=',request.POST['grant_user_add'],'grant_ip=',request.POST['grant_host_add'],
-                        #                     'grant_privs=',','.join(request.POST.getlist('to[]')),
-                        #                     'grant_db=',request.POST['grant_db_add'],'grant_tables=',request.POST['grant_tbs_add'],
-                        #                     'grant_user_pwd=',pwd,'grant_comment=',request.POST['remark'])
-
-                        priv_log.save()
+                        ###
+                        dbs = [db.strip() for db in grant_db.split(',') if len(db.strip()) > 0]
+                        prefix_tag = func.get_prefix(grant_dbtag)
+                        for db in dbs:
+                            sep = db.replace('_', '-')
+                            dbtag = prefix_tag + '-' + str(sep)
+                            # SIGN RECORD
+                            priv = Db_privileges(grant_dbtag=dbtag,grant_user=request.POST['grant_user_add'],grant_ip=request.POST['grant_host_add'],
+                                         grant_privs=','.join(request.POST.getlist('to[]')),
+                                         grant_db=request.POST['grant_db_add'],grant_tables=request.POST['grant_tbs_add'],
+                                         grant_user_pwd=enpwd,grant_comment=request.POST['remark'],db_name_id=Db_name.objects.get(dbtag=dbtag).id)
+                            priv.save()
+                            priv_log = DB_priv_log(uname=request.user.username, action="add_new_priv", fkid_id=Db_privileges.objects.last().id)
+                            priv_log.save()
+                        ###
                         # -- select privs_data again
                         data = func.get_privileges_data(hosttag)
                         for item in data:
@@ -887,19 +894,25 @@ def grant_privileges(request):
                     item.grant_user_pwd = func.get_decrypt_pwd(item.grant_user_pwd)
                 addr, dbname, idc = func.get_instance_addr(hosttag)
                 try:
-                    grant_id = int(request.POST['confirm_modify'])
-                    grant_dbtag = request.POST['ins_host_add']
-                    grant_user = request.POST['grant_user_add']
-                    grant_ip = request.POST['grant_host_add']
+                    grant_id = int(request.POST['confirm_modify'].strip())
+                    grant_dbtag = request.POST['ins_host_add'].strip()
+                    grant_user = request.POST['grant_user_add'].strip()
+                    grant_ip = request.POST['grant_host_add'].strip()
                     grant_privs = ','.join(request.POST.getlist('to[]'))
-                    grant_db = request.POST['grant_db_add']
-                    grant_tables=request.POST['grant_tbs_add']
+                    grant_db = request.POST['grant_db_add'].strip()
+                    grant_tables=request.POST['grant_tbs_add'].strip()
                     # grant_user_pwd = pwd
-                    grant_comment=request.POST['remark']
+                    grant_comment=request.POST['remark'].strip()
+
+                    # Current NOT support grant_db = '*' check grant_db
+                    if grant_db == '*':
+                        ret = 'Grant_db equal "*" not support current,Please give DB_NAME.'
+                        return render(request,'previliges/grant_privileges.html',{'form': form,'objlist':obj_list,'optypelist':optype_list, 'datalist':data, 'choosed_host':hosttag, 'mysql_privs': mysql_privs, 'err_msg': ret, 'addr': addr, 'dbname': dbname})
+                    # check done
 
                     dbtool = DBTool(username=opsdbuser, password=func.get_mypd(),database='mysql', host=addr.split(':')[1], port=int(addr.split(':')[2]))
 
-                    ret, status = func.modify_priv(dbtool, grant_id, grant_privs, grant_db, grant_tables, grant_user, grant_ip, grant_comment, idc)
+                    ret, status = func.modify_priv(request, dbtool, grant_id, grant_privs, grant_db, grant_tables, grant_user, grant_ip, grant_comment, idc)
                 except Exception as e:
                     print("confirm_modify: ", e)
 
@@ -920,10 +933,10 @@ def grant_privileges(request):
                 addr, dbname, idc = func.get_instance_addr(hosttag)
 
                 try:
-                    grant_id = int(request.POST['confirm_add_ip'])
-                    grant_user = request.POST['grant_user_add']
-                    grant_ip = request.POST['grant_host_add']
-                    grant_comment = request.POST['remark']
+                    grant_id = int(request.POST['confirm_add_ip'].strip())
+                    grant_user = request.POST['grant_user_add'].strip()
+                    grant_ip = request.POST['grant_host_add'].strip()
+                    grant_comment = request.POST['remark'].strip()
 
                     dbtool = DBTool(username=opsdbuser, password=func.get_mypd(),database='mysql', host=addr.split(':')[1], port=int(addr.split(':')[2]))
 
@@ -949,11 +962,11 @@ def grant_privileges(request):
                 dbtool = DBTool(username=opsdbuser, password=func.get_mypd(),database='mysql', host=addr.split(':')[1], port=int(addr.split(':')[2]))
 
                 try:
-                    grant_id = int(request.POST['confirm_update_pwd'])
-                    grant_user = request.POST['grant_user_add']
-                    grant_ip = request.POST['grant_host_add']
-                    grant_comment = request.POST['remark']
-                    update_user_pwd = request.POST['update_pwd_add']
+                    grant_id = int(request.POST['confirm_update_pwd'].strip())
+                    grant_user = request.POST['grant_user_add'].strip()
+                    grant_ip = request.POST['grant_host_add'].strip()
+                    grant_comment = request.POST['remark'].strip()
+                    update_user_pwd = request.POST['update_pwd_add'].strip()
 
                     dbtool = DBTool(username=opsdbuser, password=func.get_mypd(),database='mysql', host=addr.split(':')[1], port=int(addr.split(':')[2]))
 
@@ -978,7 +991,7 @@ def grant_privileges(request):
                 addr, dbname, idc = func.get_instance_addr(hosttag)
 
                 try:
-                    grant_id = int(request.POST['grant_id'])
+                    grant_id = int(request.POST['grant_id'].strip())
 
                     dbtool = DBTool(username=opsdbuser, password=func.get_mypd(),database='mysql', host=addr.split(':')[1], port=int(addr.split(':')[2]))
 

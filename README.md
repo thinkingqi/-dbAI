@@ -1,4 +1,4 @@
-# db_platform
+# dbAI
 ## 基于`django`、`celery`和`inception`，带权限控制的数据库平台
 ### 另外还带有一些简单的`saltstack api`和监控功能
 ## 功能简述如下

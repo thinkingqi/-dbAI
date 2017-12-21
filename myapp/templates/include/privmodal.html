@@ -185,7 +185,8 @@
         $("#addNewPrivModal input[name='ins_host_add']").val(myrow.eq(1).html());
         $("#addNewPrivModal input[name='grant_user_add']").val(myrow.eq(2).html()).attr("readonly","readonly");
         $("#addNewPrivModal input[name='grant_host_add']").val(getStr(myrow.eq(3).html()));
-        $("#addNewPrivModal input[name='grant_db_add']").val(myrow.eq(5).html()).attr("readonly","readonly");
+        //$("#addNewPrivModal input[name='grant_db_add']").val(myrow.eq(5).html()).attr("readonly","readonly");
+        $("#addNewPrivModal input[name='grant_db_add']").val(myrow.eq(5).html());
         $("#addNewPrivModal input[name='grant_tbs_add']").val(getStr(myrow.eq(6).html()));
         $("#addNewPrivModal input[name='remark']").val(myrow.eq(11).html());
         var privs=myrow.eq(4).html().split(',');

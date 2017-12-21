@@ -14,7 +14,7 @@ import os
 import djcelery
 from kombu import Queue,Exchange
 djcelery.setup_loader()
-BROKER_URL = 'redis://192.168.46.105:6379/0'
+BROKER_URL = 'redis://xxxxxxx/0'
 CELERYBEAT_SCHEDULER = 'djcelery.schedulers.DatabaseScheduler'
 CELERY_IMPORTS = ("myapp.tasks","myapp.include.scheduled","myapp.include.mon")
 CELERY_QUEUES = (
@@ -122,10 +122,10 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'django',
-        'USER': 'xxxx',
-        'PASSWORD': 'xxxx',
-        'HOST': 'xxxx',
-        'PORT': '3306',
+        'USER': 'xxxxx',
+        'PASSWORD': 'xxxxx',
+        'HOST': 'xxxxx',
+        'PORT': 'xxxxx',
         'OPTIONS': {
             #'init_command': 'SET default_storage_engine=INNODB',
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"

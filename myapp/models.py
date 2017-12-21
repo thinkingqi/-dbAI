@@ -186,11 +186,11 @@ class MySQL_monitor(models.Model):
 
 class Db_privileges(models.Model):
     id=models.AutoField(primary_key=True)
-    grant_dbtag=models.CharField(max_length=30)
-    grant_user=models.CharField(max_length=20)
-    grant_ip=models.CharField(max_length=15)
+    grant_dbtag=models.CharField(max_length=50, db_index=True)
+    grant_user=models.CharField(max_length=30)
+    grant_ip=models.CharField(max_length=150)
     grant_privs=models.CharField(max_length=300)
-    grant_db=models.CharField(max_length=20)
+    grant_db=models.CharField(max_length=100)
     grant_tables=models.CharField(max_length=1000)
     grant_user_pwd=models.CharField(max_length=80)
     create_time=models.DateTimeField(auto_now=True, db_index=True)

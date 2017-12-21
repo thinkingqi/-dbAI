@@ -3,7 +3,7 @@
 import MySQLdb,sys,string,time,datetime,uuid,commands,os
 from myapp.include.encrypt import prpcrypt
 from django.contrib.auth.models import User,Permission,ContentType,Group
-from myapp.models import Db_name,Db_account,Db_instance,Oper_log,Login_log,Db_group,Db_privileges
+from myapp.models import Db_name,Db_account,Db_instance,Oper_log,Login_log,Db_group,Db_privileges,DB_priv_log
 from myapp.form import LoginForm,Captcha
 from myapp.etc import config
 from mypro import settings
@@ -515,16 +515,16 @@ def get_privileges_data(dbtag,optype=None,begin=None,end=None):
     if (optype=='all'):
         #如果结束时间小于开始时间，则以结束时间为准
         if (end > begin):
-            log = Db_privileges.objects.filter(grant_dbtag=dbtag).filter(create_time__lte=end).filter(create_time__gte=begin).order_by("-create_time")[0:100]
+            log = Db_privileges.objects.filter(grant_dbtag=dbtag).filter(create_time__lte=end).filter(create_time__gte=begin).filter(grant_status=1).order_by("-create_time")[0:100]
         else:
-            log = Db_privileges.objects.filter(grant_dbtag=dbtag).filter(create_time__lte=end).order_by("-create_time")[0:100]
+            log = Db_privileges.objects.filter(grant_dbtag=dbtag).filter(create_time__lte=end).filter(grant_status=1).order_by("-create_time")[0:100]
     else:
         if not optype and not begin and not end:
-            log = Db_privileges.objects.filter(grant_dbtag=dbtag).order_by("-create_time")[0:100]
+            log = Db_privileges.objects.filter(grant_dbtag=dbtag).filter(grant_status=1).order_by("-create_time")[0:100]
         elif (end > begin):
-            log = Db_privileges.objects.filter(grant_dbtag=dbtag).filter(sqltype=optype).filter(create_time__lte=end).filter(create_time__gte=begin).order_by("-create_time")[0:100]
+            log = Db_privileges.objects.filter(grant_dbtag=dbtag).filter(sqltype=optype).filter(create_time__lte=end).filter(create_time__gte=begin).filter(grant_status=1).order_by("-create_time")[0:100]
         else:
-            log = Db_privileges.objects.filter(grant_dbtag=dbtag).filter(sqltype=optype).filter(create_time__lte=end).order_by("-create_time")[0:100]
+            log = Db_privileges.objects.filter(grant_dbtag=dbtag).filter(sqltype=optype).filter(create_time__lte=end).filter(grant_status=1).order_by("-create_time")[0:100]
     return log
 
 # add
@@ -557,20 +557,43 @@ def get_decrypt_pwd(pwd):
 def get_mypd():
     return pc.decrypt(config.opsdbpwd)
 
+def get_prefix(grant_dbtag):
+    if 'aliyun' in grant_dbtag:
+        return '-'.join(grant_dbtag.split('-')[0:3])
+    if 'office' in grant_dbtag:
+        return '-'.join(grant_dbtag.split('-')[0:2])
+
 def add_new_priv(dbtool, grant_privs, grant_db, grant_tables, grant_user, grant_ip, grant_user_pwd, idc):
-    grant_tbs=[tb.strip() for tb in grant_tables.split(',') if len(tb.strip()) >0]
-    grant_ips = [ip.strip() for ip in grant_ip.split(',') if len(ip.strip()) >0]
+    grant_tbs=[tb.strip() for tb in grant_tables.split(',') if len(tb.strip()) > 0]
+    grant_ips = [ip.strip() for ip in grant_ip.split(',') if len(ip.strip()) > 0]
+    grant_dbs = [db.strip() for db in grant_db.split(',') if len(db.strip()) > 0]
+
+    # Don`t not support GRANT *.* privileges
+    # if '*' in grant_dbs or '%' in grant_dbs:
+    #     for ip in grant_ips:
+    #         ip = ip.replace('*', '%')
+    #         sql = "grant {} on *.* to {}@'"'{}'"' identified by '"'{}'"' ".format(grant_privs, grant_user, ip, grant_user_pwd)
+    #         print("add_new_priv:sql>>>>>: ", sql)
+    #         try:
+    #             dbtool.execute(sql)
+    #         except Exception as e:
+    #             return str(e), 'notok'
+    #     return 'Create user and grant privileges SUCC', 'ok'
+
     if '*' in grant_tbs or '%' in grant_tbs:
         try:
             for ip in grant_ips:
+                ip = ip.replace('*', '%')
                 msg, status = check_user(dbtool, grant_user=grant_user, grant_ip=ip, idc=idc)
                 if status == 'ok':
-                    sql = "grant {} on {}.* to {}@'"'{}'"' identified by '"'{}'"' ".format(grant_privs, grant_db, grant_user, ip, grant_user_pwd)
-                    print("add_new_priv:sql>>>>>: ", sql)
-                    try:
-                        dbtool.execute(sql)
-                    except Exception as e:
-                        return str(e), 'notok'
+                    # for more grant_dbs
+                    for db in grant_dbs:
+                        sql = "grant {} on {}.* to {}@'"'{}'"' identified by '"'{}'"' ".format(grant_privs, db, grant_user, ip, grant_user_pwd)
+                        print("add_new_priv:sql>>>>>: ", sql)
+                        try:
+                            dbtool.execute(sql)
+                        except Exception as e:
+                            return str(e), 'notok'
                 else:
                     return msg, 'notok'
             return 'Create user and grant privileges SUCC', 'ok'
@@ -578,17 +601,30 @@ def add_new_priv(dbtool, grant_privs, grant_db, grant_tables, grant_user, grant_
             return str(e), 'notok'
     else:
         try:
-            for tb in grant_tbs:
-                if '%' in tb or '*' in tb:
-                    tbs = get_tbs(dbtool, grant_db, tb)
-                    for t in tbs:
-                        t = t.replace('%', '*')
-                        for ip in grant_ips:
-                            sql = "grant {} on {}.{} to {}@'"'{}'"' identified by '"'{}'"' ".format(grant_privs, grant_db, t, grant_user, ip, grant_user_pwd)
-                            try:
-                                dbtool.execute(sql)
-                            except Exception as e:
-                                return str(e), 'notok'
+            for db in grant_dbs:
+                for tb in grant_tbs:
+                    if '%' in tb or '*' in tb:
+                        tb = tb.replace('*', '%')
+                        tbs = get_tbs(dbtool, db, tb)
+                        if len(tbs) > 0:
+                            for t in tbs:
+                                for ip in grant_ips:
+                                    ip = ip.replace('*', '%')
+                                    sql = "grant {} on {}.{} to {}@'"'{}'"' identified by '"'{}'"' ".format(grant_privs, db, t, grant_user, ip, grant_user_pwd)
+                                    try:
+                                        dbtool.execute(sql)
+                                    except Exception as e:
+                                        return str(e), 'notok'
+                    else:
+                        tbs = get_tbs(dbtool, db, tb)
+                        if len(tbs) > 0:
+                            for t in tbs:
+                                for ip in grant_ips:
+                                    sql = "grant {} on {}.{} to {}@'"'{}'"' identified by '"'{}'"' ".format(grant_privs, db, t, grant_user, ip, grant_user_pwd)
+                                    try:
+                                        dbtool.execute(sql)
+                                    except Exception as e:
+                                        return str(e), 'notok'
             return 'Create user and grant privileges SUCC', 'ok'
         except Exception as e:
             return str(e), 'notok'
@@ -606,15 +642,18 @@ def check_user(dbtool, grant_privs=None, grant_db=None, grant_tables=None, grant
         return '', 'ok'
 
 # modify priv :button -> confirm_modify
-def modify_priv(dbtool, grant_id, grant_privs, grant_db, grant_tables, grant_user, grant_ip, grant_comment, idc):
+def modify_priv(request, dbtool, grant_id, grant_privs, grant_db, grant_tables, grant_user, grant_ip, grant_comment, idc):
     pline = Db_privileges.objects.get(id=grant_id)
+    pwd = pc.decrypt(pline.grant_user_pwd.strip())
     grant_tbs = [tb.strip() for tb in grant_tables.split(',') if len(tb.strip()) > 0]
     grant_ips = [ip.strip() for ip in grant_ip.split(',') if len(ip.strip()) > 0]
     grant_privs = [priv.strip() for priv in grant_privs.split(',') if len(priv.strip()) > 0]
+    grant_dbs = [db.strip() for db in grant_db.split(',') if len(db.strip()) > 0]
 
     now_tbs = [t.strip() for t in pline.grant_tables.split(',') if len(t.strip()) > 0]
     now_ips = [i.strip() for i in pline.grant_ip.split(',') if len(i.strip()) > 0]
     now_privs = [p.strip() for p in pline.grant_privs.split(',') if len(p.strip()) > 0]
+    now_dbs = [d.strip() for d in pline.grant_db.split(',') if len(d.strip()) > 0]
 
     # add tbs and delete tbs
     plus_tbs = list(set(grant_tbs).intersection(set(now_tbs)))
@@ -628,50 +667,330 @@ def modify_priv(dbtool, grant_id, grant_privs, grant_db, grant_tables, grant_use
     plus_privs = list(set(grant_privs).difference(set(now_privs)))
     minus_privs = list(set(now_privs).difference(set(grant_privs)))
 
+    # add dbs and delete dbs
+    plus_dbs = list(set(grant_dbs).difference(set(now_dbs)))
+    minus_dbs = list(set(now_dbs).difference(set(grant_dbs)))
+    inter_dbs = list(set(now_dbs).intersection(set(grant_dbs)))  #  using for minus_privs
+
     # last need ips/privs/tbs
     last_ips = list(set(grant_ips).intersection(set(now_ips))) + list(set(grant_ips).difference(set(now_ips)))
     last_privs = list(set(grant_privs).intersection(set(now_privs))) + list(set(grant_privs).difference(set(now_privs)))
     last_tbs = list(set(grant_tbs).intersection(set(now_tbs))) + list(set(grant_tbs).difference(set(now_tbs)))
 
-    for ip in minus_ips:
-        sql = 'drop user {}@"'"{}"'" '.format(grant_user, ip)
-        print(">>>>>drop user in minus_ips:", sql)
-        try:
-            dbtool.execute(sql)
-        except Exception as e:
-            print(">>>drop user error:", e)
-            return str(e), 'notok'
-    for priv in minus_privs:
-        for ip in list(set(now_ips).intersection(set(grant_ips))):
-            for tb in now_tbs:
-                tb = tb.replace('%', '*')
-                sql = 'revoke {} on {}.{} from {}@"'"{}"'" '.format(priv, grant_db, tb, ip)
-                print(">>>>revoke priv from user:", sql)
-                try:
-                    dbtool.execute(sql)
-                except Exception as e:
-                    print(">>>>revoke privs error: ", e)
-                    return str(e), 'notok'
-    pwd = pc.decrypt(pline.grant_user_pwd)
+    if minus_ips:
+        for ip in minus_ips:
+            ip = ip.replace('*', '%')
+            sql = 'drop user {}@"'"{}"'" '.format(grant_user, ip)
+            print(">>>>>modify drop user in minus_ips:", sql)
+            try:
+                dbtool.execute(sql)
+            except Exception as e:
+                print(">>>modify drop user error:", e)
+                return str(e), 'notok'
+    #if minus_privs:
+    m_p = [','.join(minus_privs) if minus_privs else ','.join(now_privs)][0]
+    n_p = ','.join(now_privs)  # now_privs
+    for ip in list(set(now_ips).intersection(set(grant_ips))):
+        ip = ip.replace('*', '%')
+        ### when minus_privs and minus_dbs
+        if minus_dbs:
+            for db in minus_dbs:
+                if '*' in now_tbs or '%' in now_tbs:
+                    sql = 'revoke {} on {}.* from {}@"'"{}"'" '.format(n_p, db, grant_user,ip)
+                    print(">>>>modify revoke priv from user:", sql)
+                    try:
+                        dbtool.execute(sql)
+                    except Exception as e:
+                        print(">>>>modify revoke privs error: ", e)
+                        return str(e), 'notok'
+                else:
+                    for tb in now_tbs:
+                        if '*' in tb or '%' in tb:
+                            tb = tb.replace('*', '%')
+                            tbs = get_tbs(dbtool, db, tb)
+                            if tbs:
+                                for t in tbs:
+                                    sql = 'revoke {} on {}.{} from {}@"'"{}"'" '.format(n_p, db, t, grant_user, ip)
+                                    try:
+                                        dbtool.execute(sql)
+                                    except Exception as e:
+                                        print(">>>>modify revoke privs error: ", e)
+                                        return str(e), 'notok'
+                        else:
+                            tbs = get_tbs(dbtool, db, tb)
+                            if tbs:
+                                for t in tbs:
+                                    sql = 'revoke {} on {}.{} from {}@"'"{}"'" '.format(n_p, db, t, grant_user, ip)
+                                    try:
+                                        dbtool.execute(sql)
+                                    except Exception as e:
+                                        print(">>>>modify revoke privs error: ", e)
+                                        return str(e), 'notok'
+            ### delete minus_dbs record row
+            #if minus_dbs:
+            try:
+                for db in minus_dbs:
+                    prefix_tag = get_prefix(pline.grant_dbtag)
+                    dbtag = prefix_tag + '-' + db.replace('_', '-')
+                    minus_tag = Db_privileges.objects.get(grant_dbtag=dbtag, grant_user=pline.grant_user, grant_user_pwd= pline.grant_user_pwd, grant_status=1)  # for active grant row
+                    minus_tag.grant_status = 0
+                    minus_tag.save()
+            except Exception as e:
+                print("line: 739 --> mofify minus_dbs db_privileges set grant_status=0 wrong: %s", e)
+
+        # for minus_tbs. ignore plus_tbs, ADD endOfFunc
+        if minus_tbs:
+            if inter_dbs:
+                for db in inter_dbs:
+                    if '*' in minus_tbs or '%' in minus_tbs:
+                        sql = 'revoke {} on {}.* from {}@"'"{}"'" '.format(pline.grant_privs, db, grant_user,ip)
+                        print(">>>>modify minus_tbs revoke priv from user:", sql)
+                        try:
+                            dbtool.execute(sql)
+                        except Exception as e:
+                            print(">>>>modify minus_tbs revoke privs error: ", e)
+                            return str(e), 'notok'
+                    else:
+                        for tb in minus_tbs:
+                            if '*' in tb or '%' in tb:
+                                tb = tb.replace('*', '%')
+                                tbs = get_tbs(dbtool, db, tb)
+                                if tbs:
+                                    for t in tbs:
+                                        sql = 'revoke {} on {}.{} from {}@"'"{}"'" '.format(pline.grant_privs, db, t, grant_user, ip)
+                                        try:
+                                            dbtool.execute(sql)
+                                        except Exception as e:
+                                            print(">>>>modify minus_tbs revoke privs error: ", e)
+                                            return str(e), 'notok'
+                            else:
+                                tbs = get_tbs(dbtool, db, tb)
+                                if tbs:
+                                    for t in tbs:
+                                        sql = 'revoke {} on {}.{} from {}@"'"{}"'" '.format(pline.grant_privs, db, t, grant_user, ip)
+                                        try:
+                                            dbtool.execute(sql)
+                                        except Exception as e:
+                                            print(">>>>modify minus_tbs revoke privs error: ", e)
+                                            return str(e), 'notok'
+            ### delete minus_tbs for exists record row
+            #if minus_tbs:
+            try:
+                for db in inter_dbs:
+                    prefix_tag = get_prefix(pline.grant_dbtag)
+                    dbtag = prefix_tag + '-' + db.replace('_', '-')
+                    minus_tag = Db_privileges.objects.get(grant_dbtag=dbtag, grant_user=pline.grant_user, grant_user_pwd= pline.grant_user_pwd, grant_status=1)
+                    minus_tag.grant_tables = ','.join(grant_tbs)
+                    minus_tag.save()
+            except Exception as e:
+                print("line: 786 --> mofify minus_tbs db_privileges set grant_status=0 wrong: %s", e)
+
+        # when minus_privs and plus_dbs
+        if plus_dbs:
+            l_p = ','.join(last_privs)  #  current grant privs
+            for db in plus_dbs:
+                if '*' in now_tbs or '%' in now_tbs:
+                    sql = 'grant {} on {}.* from {}@"'"{}"'" identified by "'"{}"'" '.format(l_p, db, grant_user,ip, pwd)
+                    print(">>>>modify plus_dbs ==> grant priv from user:", sql)
+                    try:
+                        dbtool.execute(sql)
+                    except Exception as e:
+                        print(">>>>modify plus_dbs ==> grant priv from user: ", e)
+                        return str(e), 'notok'
+                else:
+                    for tb in now_tbs:
+                        if '*' in tb or '%' in tb:
+                            tb = tb.replace('*', '%')
+                            tbs = get_tbs(dbtool, db, tb)
+                            if tbs:
+                                for t in tbs:
+                                    sql = 'grant {} on {}.{} from {}@"'"{}"'" identified by "'"{}"'" '.format(l_p, db, t, grant_user, ip, pwd)
+                                    try:
+                                        dbtool.execute(sql)
+                                    except Exception as e:
+                                        print(">>>>modify plus_dbs ==> grant privs error: ", e)
+                                        return str(e), 'notok'
+                        else:
+                            tbs = get_tbs(dbtool, db, tb)
+                            if tbs:
+                                for t in tbs:
+                                    sql = 'grant {} on {}.{} from {}@"'"{}"'" identified by "'"{}"'" '.format(l_p, db, t, grant_user, ip, pwd)
+                                    try:
+                                        dbtool.execute(sql)
+                                    except Exception as e:
+                                        print(">>>>modify plus_dbs ==> grant privs error: ", e)
+                                        return str(e), 'notok'
+            ### add plus_dbs record row
+            # if plus_dbs: will add end this func 'if plus_dbs'
+            # for db in plus_dbs:
+            #     prefix_tag = get_prefix(pline.grant_dbtag)
+            #     dbtag = prefix_tag + '-' + db.replace('_', '-')
+            #     priv = Db_privileges(grant_dbtag=dbtag,grant_user=pline.grant_user,grant_ip=pline.grant_ip,
+            #                              grant_privs=pline.grant_privs,
+            #                              grant_db=','.join(grant_dbs), grant_tables=','.join(grant_tbs),
+            #                              grant_user_pwd=pline.grant_user_pwd,grant_comment=grant_comment,db_name_id=Db_name.objects.get(dbtag=dbtag).id)
+            #     priv.save()
+            #     priv_log = DB_priv_log(uname=request.user.username, action="add_new_priv", fkid_id=Db_privileges.objects.last().id)
+            #     priv_log.save()
+        # for only minus_privs .Need minus intersection dbs privs
+        if minus_privs:
+            m_p = ','.join(minus_privs)
+            for db in inter_dbs:
+                if '*' in now_tbs or '%' in now_tbs:
+                    sql = 'revoke {} on {}.* from {}@"'"{}"'" '.format(m_p, db, grant_user,ip)
+                    print(">>>>modify minus_privs: revoke priv from user:", sql)
+                    try:
+                        dbtool.execute(sql)
+                    except Exception as e:
+                        print(">>>>modify minus_privs: revoke privs error: ", e)
+                        return str(e), 'notok'
+                else:
+                    for tb in now_tbs:
+                        if '*' in tb or '%' in tb:
+                            tb = tb.replace('*', '%')
+                            tbs = get_tbs(dbtool, db, tb)
+                            if tbs:
+                                for t in tbs:
+                                    sql = 'revoke {} on {}.{} from {}@"'"{}"'" '.format(m_p, db, t, grant_user, ip)
+                                    try:
+                                        dbtool.execute(sql)
+                                    except Exception as e:
+                                        print(">>>>modify minus_privs: revoke privs error: ", e)
+                                        return str(e), 'notok'
+                        else:
+                            tbs = get_tbs(dbtool, db, tb)
+                            if tbs:
+                                for t in tbs:
+                                    sql = 'revoke {} on {}.{} from {}@"'"{}"'" '.format(m_p, db, t, grant_user, ip)
+                                    try:
+                                        dbtool.execute(sql)
+                                    except Exception as e:
+                                        print(">>>>modify minus_privs: revoke privs error: ", e)
+                                        return str(e), 'notok'
+            ### update minus_privs record row
+            #if minus_privs:
+            try:
+                for db in inter_dbs:
+                    prefix_tag = get_prefix(pline.grant_dbtag)
+                    dbtag = prefix_tag + '-' + db.replace('_', '-')
+                    minus_tag = Db_privileges.objects.get(grant_dbtag=dbtag, grant_user=pline.grant_user, grant_user_pwd= pline.grant_user_pwd, grant_status=1)
+                    minus_tag.grant_privs = ','.join(grant_privs)
+                    minus_tag.save()
+            except Exception as e:
+                print("line: 870 --> mofify minus_privs db_privileges set grant_privs=grant_privs wrong: %s", e)
+        # for only plus_privs
+        if plus_privs:
+            p_p = ','.join(plus_privs)
+            for db in inter_dbs:
+                if '*' in now_tbs or '%' in now_tbs:
+                    sql = 'grant {} on {}.* from {}@"'"{}"'" identified by "'"{}"'" '.format(p_p, db, grant_user,ip, pwd)
+                    print(">>>>modify plus_privs ==> grant priv from user:", sql)
+                    try:
+                        dbtool.execute(sql)
+                    except Exception as e:
+                        print(">>>>modify plus_privs ==> grant priv from user: ", e)
+                        return str(e), 'notok'
+                else:
+                    for tb in now_tbs:
+                        if '*' in tb or '%' in tb:
+                            tb = tb.replace('*', '%')
+                            tbs = get_tbs(dbtool, db, tb)
+                            if tbs:
+                                for t in tbs:
+                                    sql = 'grant {} on {}.{} from {}@"'"{}"'" identified by "'"{}"'" '.format(p_p, db, t, grant_user, ip, pwd)
+                                    try:
+                                        dbtool.execute(sql)
+                                    except Exception as e:
+                                        print(">>>>modify plus_privs ==> grant privs error: ", e)
+                                        return str(e), 'notok'
+                        else:
+                            tbs = get_tbs(dbtool, db, tb)
+                            if tbs:
+                                for t in tbs:
+                                    sql = 'grant {} on {}.{} from {}@"'"{}"'" identified by "'"{}"'" '.format(p_p, db, t, grant_user, ip, pwd)
+                                    try:
+                                        dbtool.execute(sql)
+                                    except Exception as e:
+                                        print(">>>>modify plus_privs ==> grant privs error: ", e)
+                                        return str(e), 'notok'
+            ### update plus_privs record row
+            #if plus_privs:
+            try:
+                for db in inter_dbs:
+                    prefix_tag = get_prefix(pline.grant_dbtag)
+                    dbtag = prefix_tag + '-' + db.replace('_', '-')
+                    plus_tag = Db_privileges.objects.get(grant_dbtag=dbtag, grant_user=pline.grant_user, grant_user_pwd= pline.grant_user_pwd, grant_status=1)
+                    plus_tag.grant_privs = ','.join(grant_privs)
+                    plus_tag.save()
+            except Exception as e:
+                print("line: 916 --> mofify privs_privs db_privileges set grant_privs=grant_privs wrong: %s", e)
+        ###
+            ###
+    # for new add ips grant
+    pwd = pc.decrypt(pline.grant_user_pwd.strip())
+    p_p = ','.join(grant_privs)
     for ip in grant_ips:
-        for priv in grant_privs:
-            for tb in grant_tbs:
-                tb = tb.replace('%', '*')
-                sql = 'grant {} on {}.{} to {}@"'"{}"'" identified by "'"{}"'" '.format(priv, grant_db, tb, grant_user, ip, pwd)
-                print(">>>> modify button grant sql: ", sql)
+        ip = ip.replace('*', '%')
+        for db in grant_dbs:
+            if '*' in grant_tbs or '%' in grant_tbs:
+                sql = 'grant {} on {}.* to {}@"'"{}"'" identified by "'"{}"'" '.format(p_p, db, grant_user,ip, pwd)
+                print(">>>>modify plus new ips grant priv to user:", sql)
                 try:
                     dbtool.execute(sql)
                 except Exception as e:
-                    print("modify button grant error: ", e)
+                    print(">>>>modify plus new ips grant privs error: ", e)
                     return str(e), 'notok'
+            else:
+                for tb in grant_tbs:
+                    if '*' in tb or '%' in tb:
+                        tb = tb.replace('*', '%')
+                        tbs = get_tbs(dbtool, db, tb)
+                        if tbs:
+                            for t in tbs:
+                                sql = 'grant {} on {}.{} to {}@"'"{}"'" identified by "'"{}"'" '.format(p_p, db, t, grant_user, ip, pwd)
+                                try:
+                                    dbtool.execute(sql)
+                                except Exception as e:
+                                    print(">>>>modify plus new ips grant privs error: ", e)
+                                    return str(e), 'notok'
+                    else:
+                        tbs = get_tbs(dbtool, db, tb)
+                        if tbs:
+                            for t in tbs:
+                                sql = 'grant {} on {}.{} to {}@"'"{}"'" identified by "'"{}"'" '.format(p_p, db, t, grant_user, ip, pwd)
+                                try:
+                                    dbtool.execute(sql)
+                                except Exception as e:
+                                    print(">>>>modify plus new ips privs error: ", e)
+                                    return str(e), 'notok'
     try:
-        pline.grant_ip = ','.join(grant_ips)
-        pline.grant_privs = ','.join(grant_privs)
-        pline.grant_tables = ','.join(grant_tables)
-        pline.grant_comment = grant_comment
-        pline.save()
+        ### add new grant_db row to myapp_db_privilegs
+        if plus_dbs:
+            for db in plus_dbs:
+                prefix_tag = get_prefix(pline.grant_dbtag)
+                dbtag = prefix_tag + '-' + db.replace('_', '-')
+                priv = Db_privileges(grant_dbtag=dbtag,grant_user=pline.grant_user,grant_ip=','.join(grant_ips),
+                                         grant_privs=','.join(grant_privs),
+                                         grant_db=','.join(grant_dbs), grant_tables=','.join(grant_tbs),
+                                         grant_user_pwd=pline.grant_user_pwd,grant_comment=grant_comment,db_name_id=Db_name.objects.get(dbtag=dbtag).id)
+                priv.save()
+                priv_log = DB_priv_log(uname=request.user.username, action="add_new_priv", fkid_id=Db_privileges.objects.last().id)
+                priv_log.save()
+        ## update old grant db row in Db_privileges
+        need_update_dbs = list(set(grant_dbs).intersection(set(now_dbs)))
+        if need_update_dbs:
+            for db in need_update_dbs:
+                prefix_tag = get_prefix(pline.grant_dbtag)
+                dbtag = prefix_tag + '-' + db.replace('_', '-')
+                updline = Db_privileges.objects.get(grant_dbtag=dbtag, grant_user=pline.grant_user, grant_user_pwd= pline.grant_user_pwd, grant_status=1)
+                updline.grant_ip = ','.join(grant_ips)
+                updline.grant_privs = ','.join(grant_privs)
+                updline.grant_tables = ','.join(grant_tbs)
+                updline.grant_db = ','.join(grant_dbs)
+                updline.grant_comment = grant_comment
+                updline.save()
     except Exception as e:
-        print(">>>>pline.save: ", e)
+        print(">>>>Last Update Db_privileges Error: ", e)
         return str(e), 'notok'
     return 'Modify user and modify privileges SUCC', 'ok'
 
@@ -681,49 +1000,114 @@ def confirm_add_ip(dbtool, grant_id, hosttag, grant_user, grant_ip, grant_commen
     grant_ips = [ip.strip() for ip in grant_ip.split(',') if len(ip.strip()) > 0]
     now_ips = [i.strip() for i in pline.grant_ip.split(',') if len(i.strip()) > 0]
     now_tbs = [t.strip() for t in pline.grant_tables.split(',') if len(t.strip()) > 0]
+    now_dbs = [d.strip() for d in pline.grant_db.split(',') if len(d.strip()) > 0]
 
     plus_ips = list(set(grant_ips).difference(set(now_ips)))
     pwd = pc.decrypt(pline.grant_user_pwd)
 
-    if '%' in now_ips:
+    if '%' in now_ips or '*' in now_ips:
         return 'confirm add ip and grant privileges SUCC', 'ok'
 
+    if not plus_ips:
+        return 'Minus ip please use "Modify Function" ', 'ok'
+
     for ip in plus_ips:
-        for tb in now_tbs:
-            tb = tb.replace('%', '*')
-            sql = 'grant {} on {}.{} to {}@"'"{}"'" identified by "'"{}"'" '.format(pline.grant_privs, pline.grant_db, tb, grant_user, ip, pwd)
-            print(">>>>confirm_add_ip sql: ", sql)
-            try:
-                dbtool.execute(sql)
-            except Exception as e:
-                print(">>>> confirm_add_ip error: ", e)
-                return str(e), 'notok'
+
+        for db in now_dbs:
+            if '*' in now_tbs or '%' in now_tbs:
+                sql = 'grant {} on {}.* to {}@"'"{}"'" identified by "'"{}"'" '.format(pline.grant_privs, db, grant_user,ip, pwd)
+                print(">>>>confirm_add_ip grant priv to user:", sql)
+                try:
+                    dbtool.execute(sql)
+                except Exception as e:
+                    print(">>>>confirm_add_ip plus grant privs error: ", e)
+                    return str(e), 'notok'
+            else:
+                for tb in now_tbs:
+                    if '*' in tb or '%' in tb:
+                        tb = tb.replace('*', '%')
+                        tbs = get_tbs(dbtool, db, tb)
+                        if tbs:
+                            for t in tbs:
+                                sql = 'grant {} on {}.{} to {}@"'"{}"'" identified by "'"{}"'" '.format(pline.grant_privs, db, t, grant_user, ip, pwd)
+                                try:
+                                    dbtool.execute(sql)
+                                except Exception as e:
+                                    print(">>>>confirm_add_ip plus grant privs error: ", e)
+                                    return str(e), 'notok'
+                    else:
+                        tbs = get_tbs(dbtool, db, tb)
+                        if tbs:
+                            for t in tbs:
+                                sql = 'grant {} on {}.{} to {}@"'"{}"'" identified by "'"{}"'" '.format(pline.grant_privs, db, t, grant_user, ip, pwd)
+                                try:
+                                    dbtool.execute(sql)
+                                except Exception as e:
+                                    print(">>>>confirm_add_ip privs error: ", e)
+                                    return str(e), 'notok'
     # update db_privileges column : grannt_ip
-    grant_ips.append(pline.grant_ip)
-    total_ip = ','.join(grant_ips)
-    pline.grant_ip = total_ip
-    pline.grant_comment = grant_comment
-    pline.save()
+    grant_ips.extend(now_ips)
+    total_ip = ','.join(list(set(grant_ips)))
+    for db in now_dbs:
+        prefix_tag = get_prefix(pline.grant_dbtag)
+        dbtag = prefix_tag + '-' + db.replace('_', '-')
+        updline = Db_privileges.objects.get(grant_dbtag=dbtag, grant_privs=pline.grant_privs, grant_ip=pline.grant_ip, grant_user=pline.grant_user, grant_user_pwd= pline.grant_user_pwd, grant_status=1)
+        updline.grant_ip = total_ip
+        updline.grant_comment = grant_comment
+        updline.save()
 
     return 'confirm add ip and grant privileges SUCC', 'ok'
 
 # for confirm_update_pwd button
 def confirm_update_pwd(dbtool, grant_id, hosttag, grant_user, grant_ip, update_user_pwd,grant_comment):
     try:
-        grant_ips = [ip.strip() for ip in grant_ip.split(',') if len(ip.strip()) > 0]
-        for ip in grant_ips:
-            sql='set password for {}@"'"{}"'" = password("'"{}"'")'.format(grant_user, ip, update_user_pwd)
-            print(">>>> confirm_update_pwd sql:", sql)
-            try:
-                dbtool.execute(sql)
-            except Exception as e:
-                print(">>>> confirm_update_pwd error: ", e)
-                return str(e), 'notok'
-        # -----
         pline = Db_privileges.objects.get(id=grant_id)
-        pline.grant_user_pwd = pc.encrypt(update_user_pwd)
-        pline.grant_comment = grant_comment
-        pline.save()
+        now_tbs = [t.strip() for t in pline.grant_tables.split(',') if len(t.strip()) > 0]
+        grant_ips = [ip.strip() for ip in grant_ip.split(',') if len(ip.strip()) > 0]
+        now_dbs = [d.strip() for d in pline.grant_db.split(',') if len(d.strip()) > 0]
+        # sql='set password for {}@"'"{}"'" = password("'"{}"'")'.format(grant_user, ip, update_user_pwd)
+        for ip in grant_ips:
+            for db in now_dbs:
+                if '*' in now_tbs or '%' in now_tbs:
+                    sql = 'grant {} on {}.* to {}@"'"{}"'" identified by "'"{}"'" '.format(pline.grant_privs, db, grant_user,ip, update_user_pwd)
+                    print(">>>>confirm_update_pwd grant priv to user:", sql)
+                    try:
+                        dbtool.execute(sql)
+                    except Exception as e:
+                        print(">>>>confirm_update_pwd plus grant privs error: ", e)
+                        return str(e), 'notok'
+                else:
+                    for tb in now_tbs:
+                        if '*' in tb or '%' in tb:
+                            tb = tb.replace('*', '%')
+                            tbs = get_tbs(dbtool, db, tb)
+                            if tbs:
+                                for t in tbs:
+                                    sql = 'grant {} on {}.{} to {}@"'"{}"'" identified by "'"{}"'" '.format(pline.grant_privs, db, t, grant_user, ip, update_user_pwd)
+                                    try:
+                                        dbtool.execute(sql)
+                                    except Exception as e:
+                                        print(">>>>confirm_update_pwd plus grant privs error: ", e)
+                                        return str(e), 'notok'
+                        else:
+                            tbs = get_tbs(dbtool, db, tb)
+                            if tbs:
+                                for t in tbs:
+                                    sql = 'grant {} on {}.{} to {}@"'"{}"'" identified by "'"{}"'" '.format(pline.grant_privs, db, t, grant_user, ip, update_user_pwd)
+                                    try:
+                                        dbtool.execute(sql)
+                                    except Exception as e:
+                                        print(">>>>confirm_update_pwd privs error: ", e)
+                                        return str(e), 'notok'
+        # -----
+        for db in now_dbs:
+            prefix_tag = get_prefix(pline.grant_dbtag)
+            dbtag = prefix_tag + '-' + db.replace('_', '-')
+            updline = Db_privileges.objects.get(grant_dbtag=dbtag, grant_privs=pline.grant_privs, grant_ip=pline.grant_ip, grant_user=pline.grant_user, grant_user_pwd= pline.grant_user_pwd, grant_status=1)
+            updline.grant_user_pwd = pc.encrypt(update_user_pwd)
+            updline.grant_comment = grant_comment
+            updline.save()
+
     except Exception as e:
         return str(e), 'notok'
 
@@ -732,12 +1116,19 @@ def confirm_update_pwd(dbtool, grant_id, hosttag, grant_user, grant_ip, update_u
 # for delete priv
 def confirm_delete(dbtool, grant_id, hosttag):
     pline = Db_privileges.objects.get(id=grant_id)
-    pline.grant_status = 0
-    pline.save()
+    now_ips = [ip.strip() for ip in pline.grant_ip.split(',') if len(ip.strip()) > 0]
+    now_dbs = [d.strip() for d in pline.grant_db.split(',') if len(d.strip()) > 0]
+    for db in now_dbs:
+        prefix_tag = get_prefix(pline.grant_dbtag)
+        dbtag = prefix_tag + '-' + db.replace('_', '-')
+        updline = Db_privileges.objects.get(grant_dbtag=dbtag, grant_privs=pline.grant_privs, grant_ip=pline.grant_ip, grant_user=pline.grant_user, grant_user_pwd= pline.grant_user_pwd, grant_status=1)
+        updline.grant_status = 0
+        updline.save()
     # ---
-    for ip in pline.grant_ip:
+    for ip in now_ips:
+        ip = ip.replace('*', '%')
         sql = 'drop user {}@"'"{}"'" '.format(pline.grant_user, ip.strip())
-        print(">>>>pline.grant_ip:", pline.grant_ip, ':', sql)
+        print(">>>>confirm_delete: pline.grant_ip:", pline.grant_ip, ':', sql)
         dbtool.execute(sql)
     return 'delete privileges SUCC', 'ok'
 
