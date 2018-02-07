@@ -1,0 +1,92 @@
+{% extends "include/base.html" %}
+{% load cus_filter %}
+{% block title %}
+    <title>LIST_INSTANCES_QUERY</title>
+{% endblock %}
+{% block name %}
+    欢迎使用数据库实例查询功能
+{% endblock %}
+{%block content%}
+
+    {% if status == 'notok' %}
+        <span style="color:red; font-size:30px">没有权限执行查询</span>
+    {% endif %}
+    {% if inslist %}
+        {% include "include/pagejump/pagebutton.html" %}
+    {% endif %}
+    <table id="insmytable" class="table table-bordered">  <!--border="1" style="word-wrap: break-word; word-break: break-all;"-->
+        <thead>
+        <tr class="danger" style="width: 100%;">
+            <th>ID</th>
+            <th style="width: 20%">ip地址</th>
+            <th>端口</th>
+            <th>角色</th>
+            <th>数据库类型</th>
+            <th style="width: 20%">外网IP</th>
+            <th style="width: 25%">注释说明</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item in inslist %}
+            <tr id="{{ item.id }}">
+                <td> {{ item.id }}</td>
+                <td> {{ item.ip }}</td>
+                <td> {{ item.port }}</td>
+                <td> {{ item.role }}</td>
+                <td> {{ item.db_type }}</td>
+                <td> {{ item.eip }}</td>
+                <td> {{ item.comment }}</td>
+                {% if perms.myapp.can_admin_task or perms.myapp.can_delete_task %}
+                    <td><button type="submit" name='delete' class="btn btn-primary" disabled="disabled" value={{ item.id }}>删除</button></td>
+                {% endif %}
+{#                {% if perms.myapp_can_modify_priv %}#}
+{#                    <td><button type="submit" name='modify' class="btn btn-warning" value={{ item.id }} data-toggle="modal" data-target="#addNewPrivModal">修改</button></td>#}
+{#                {% endif %}#}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <hr>
+{#    {% include "include/privmodal.html" %}#}
+
+    <script type="text/javascript">
+
+    //  for delete
+    $(document).on('click',"#insmytable tr td button[name='delete']",function() {
+        console.log($(this).parent().parent().attr("id"));
+        console.log($(this).parent().parent().children().eq(1).html());
+        var myrow=$(this).parent().parent().children();
+        //$("#confirm_update_pwd").val(myrow.eq(0).html());
+        //$("#updatePwdModal input[name='ins_host_add']").val(myrow.eq(1).html());
+        //$("#updatePwdModal input[name='grant_user_add']").val(myrow.eq(2).html()).attr("readonly","readonly");
+        var ins_host_add = myrow.eq(1).html();
+        var grant_id = myrow.eq(0).html();
+        $.ajax({
+            type: "POST",
+            url:"/list_instances/",
+            data:{
+                'delete': 1,
+                'ins_host_add': ins_host_add.trim(),
+                'grant_id' : grant_id.trim()
+            },
+            success: function(r){
+                //window.open('/grant_privileges/','_self')
+                myrow.parent().remove();
+                },
+            error: function (error) {
+                // delete row: item.id failed
+                console.log(error);
+                alert('{{ err_msg }}');
+            }
+            });
+    });
+    // for updatePwdModal done
+
+    </script>
+
+
+{% endblock %}
+{% block script %}
+    {% include "include/pagejump/pagejump.html" %}
+{% endblock %}

@@ -106,7 +106,7 @@
 {#                </td>#}
                 <td> {{ item.grant_ip|split_cols }}</td>
                 <td> {{ item.grant_privs|split_cols }}</td>
-                <td> {{ item.grant_db }}</td>
+                <td> {{ item.grant_db|split_cols }}</td>
                 <td> {{ item.grant_tables|split_cols }}</td>
                 <td> {{ item.grant_user_pwd }}</td>
                 <td> {{ item.create_time|date:"Y-m-d H:i:s" }}</td>

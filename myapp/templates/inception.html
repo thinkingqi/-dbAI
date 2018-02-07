@@ -104,7 +104,7 @@
     {% if split %}
         <strong> <span style="color:red">请根据审核提示，拆分任务提交 </br> </span></strong>
     {% endif %}
-    {{ status }}
+    <span style="color:red; font-size:30px">{{ status }}</span>
     {% if collist %}
         {% include "include/pagejump/pagebutton.html" %}
     {% endif %}

@@ -67,6 +67,7 @@
 
                         {% if perms.myapp.can_set_pri or perms.myapp.can_query_pri %}
                             <li><a href="{% url 'grant_privileges' %}">后端DB授权</a></li>
+                            <li><a href="{% url 'list_instances' %}">DB实例查询</a></li>
                             <li role="presentation" class="divider"></li>
                             <li><a href="{% url 'pre_query' %}">权限查询</a></li>
                         {% endif %}

@@ -17,6 +17,9 @@ from blacklist import blFunction as bc
 from myapp.include.mylib import DBTool
 from myapp.etc.config import opsdbuser
 from myapp.include.scheduled import get_dupreport
+# for login
+import urllib2, cookielib
+from etc import config
 
 
 from django.core.files import File
@@ -45,7 +48,19 @@ def index(request):
     # print json.dumps(bingtu)
     return render(request, 'include/base.html',{'inc_data':json.dumps(inc_data),'inc_col':json.dumps(inc_col),'bingtu':json.dumps(bingtu),'data':json.dumps(data),'col':json.dumps(col),'taskdata':json.dumps(taskdata),'taskcol':json.dumps(taskcol)})
 
+'''
+@login_required(login_url='/accounts/login/')
+def logout(request):
+    auth.logout(request)
+    response = HttpResponseRedirect("https://boss.dev.chehejia.com/?serviceId=db")
+    response.delete_cookie('CHEHEJIASESSIONID', path='/', domain='.chehejia.com')
+    try:
+        response.delete_cookie('myfavword')
+    except Exception,e:
+        pass
+    return response
 
+'''
 @login_required(login_url='/accounts/login/')
 def logout(request):
     auth.logout(request)
@@ -55,6 +70,7 @@ def logout(request):
     except Exception,e:
         pass
     return response
+
 
 @login_required(login_url='/accounts/login/')
 @permission_required('myapp.can_log_query', login_url='/')
@@ -474,14 +490,14 @@ def inception(request):
                 # check if the sqltext need to be splited before uploaded
                 if len(data_mysql)>1:
                     split = 1
-                    status = 'UPLOAD TASK FAIL'
+                    status = 'UPLOAD TASK FAIL; DDL DML NEED SPLIT.'
                     return render(request, 'inception.html',{'form': form, 'upform': upform, 'objlist': objlist, 'status': status,'split':split,'choosed_host':choosed_host})
                 #check sqltext before uploaded
                 else:
                     tmp_data, tmp_col, dbname = incept.inception_check(choosed_host, sqltext)
                     for i in tmp_data:
                         if int(i[2]) !=0:
-                            status = 'UPLOAD TASK FAIL,CHECK NOT PASSED'
+                            status = 'UPLOAD TASK FAIL,CHECK NOT PASSED; AFTER CHECK PASSED, SUBMITTED TASK.'
                             return render(request, 'inception.html',locals())
                 incept.record_task(request,sqltext,choosed_host,specification,needbackup)
                 status='UPLOAD TASK OK'
@@ -498,7 +514,78 @@ def inception(request):
         upform = Uploadform()
         return render(request, 'inception.html', {'form': form,'upform':upform,'objlist':objlist})
 
+'''
+def login(request):
+    try:
+        cookie = request.COOKIES['CHEHEJIASESSIONID']
+        # check someone login,get userInfo
+        #https://boss.dev.chehejia.com/newAuth/login?serviceId=db&serviceUrl=&noc=boss-76811ca3244e458bb8e489b131724d21
+        #opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie))
+        #url = "https://boss.dev.chehejia.com/?serviceId=db"
+        url = "https://boss.dev.chehejia.com/newAuth/login?serviceId=db&serviceUrl=&noc={}".format(cookie)
+        #headers = {"noc": cookie}
+        print("url::", url)
+        #data = {"noc": cookie}
+        req = urllib2.Request(url)
+        response = urllib2.urlopen(req)
+        print('cookies>>',request.COOKIES,':::', cookie)
+        try:
+            res_str = response.read()
+            res_dict = json.loads(res_str)
+            userInfo = json.loads(res_dict['userInfo'])
+            email = userInfo["email"]
+            username = userInfo["email"].split('@')[0]
+            password = userInfo["mobile"]
+            add_user(username,password,email)
+            user = auth.authenticate(username=username, password=password)
+            auth.login(request, user)
+            func.log_userlogin(request)
+            #return HttpResponseRedirect("https://boss.dev.chehejia.com/?serviceId=db")
+            return HttpResponseRedirect("/")
+        except Exception as e:
+            print('LOGIN ERROR >>> No JSON data return: %s' % e)
+            # return HttpResponse("login succ")
+            return HttpResponseRedirect("https://boss.dev.chehejia.com/?serviceId=db")
+    except Exception as e:
+        print("login goes wrong! mess:%s" % e)
+        #redirect
+        return HttpResponseRedirect("https://boss.dev.chehejia.com/?serviceId=db")
 
+def add_user(uname,pwd,email):
+    user_str = User.objects.filter(username=uname)
+    if len(user_str) > 0:
+        print("get record:{}".format(uname))
+        upd_pwd = User.objects.get(username=uname)
+        print("upd_pwd:",upd_pwd,'pwd:',pwd,'email:',email)
+        upd_pwd.set_password(pwd)
+        upd_pwd.save()
+        # update db_user_pwd row data
+        try:
+            upd_pwd.db_user_pwd.pwd = pwd
+            upd_pwd.db_user_pwd.save()
+        except Exception as e:
+            print("add_user >> RelatedObjectDoesNotExist: upd_pwd[User][%s] has no db_user_pwd.Create new db_user_pwd line." % e)
+            newpwd = Db_user_pwd(user=upd_pwd,pwd=pwd)
+            newpwd.save()
+    else:
+        CreateUser = User.objects.create_user(username=uname,
+                                              password=pwd,
+                                              email=email,)
+        if email in config.dbamails:
+            CreateUser.is_superuser = True
+            CreateUser.is_staff = True
+            CreateUser.is_active = True
+            CreateUser.last_login = datetime.datetime.now()
+            CreateUser.save()
+            try:
+                u = User.objects.get(username=uname)
+                newpwd = Db_user_pwd(user=u,pwd=pwd)
+                newpwd.save()
+            except Exception as e:
+                print("create/change pwd save failed {}".format(str(e)))
+
+
+'''
 # @ratelimit(key=func.my_key,method='POST', rate='5/15m')
 def login(request):
     was_limited = getattr(request, 'limited', False)
@@ -802,6 +889,15 @@ def update_task(request):
 #             str = "ID NOT EXISTS , PLEASE CHECK !"
 #             # return render(request, 'update_task.html', {'str': str})
 #             return render(request, 'update_task.html', locals())
+
+@login_required(login_url='/accounts/login/')
+def list_instances(request):
+    if request.user.has_perm('myapp.can_grant_db'):
+        obj_ins = Db_instance.objects.all()
+        return render(request,'previliges/list_instances.html',{'inslist':obj_ins,'status': 'ok'})
+    else:
+        return render(request,'previliges/list_instances.html',{'status': 'notok'})
+
 @login_required(login_url='/accounts/login/')
 def grant_privileges(request):
     if request.user.has_perm('myapp.can_grant_db'):
@@ -862,9 +958,11 @@ def grant_privileges(request):
                         ###
                         dbs = [db.strip() for db in grant_db.split(',') if len(db.strip()) > 0]
                         prefix_tag = func.get_prefix(grant_dbtag)
+                        print("prefix_tag>>>", prefix_tag)
                         for db in dbs:
                             sep = db.replace('_', '-')
                             dbtag = prefix_tag + '-' + str(sep)
+                            print("sep:",sep,"dbtag::",dbtag)
                             # SIGN RECORD
                             priv = Db_privileges(grant_dbtag=dbtag,grant_user=request.POST['grant_user_add'],grant_ip=request.POST['grant_host_add'],
                                          grant_privs=','.join(request.POST.getlist('to[]')),
@@ -997,7 +1095,7 @@ def grant_privileges(request):
 
                     ret, status = func.confirm_delete(dbtool, grant_id, hosttag)
                 except Exception as e:
-                    print("confirm_update_pwd: ", e)
+                    print("confirm_delete: ", e)
                     return render(request,'previliges/grant_privileges.html',{'form': form,'objlist':obj_list,'optypelist':optype_list, 'datalist':data, 'choosed_host':hosttag, 'mysql_privs': mysql_privs, 'err_msg': e, 'addr': addr, 'dbname': dbname})
 
                 # -- succ
@@ -1664,8 +1762,14 @@ def pass_reset(request):
             # save pwd
             try:
                 u = User.objects.get(username=request.user.username)
-                newpwd = Db_user_pwd(user=u,pwd=p)
-                newpwd.save()
+                user_pwd=Db_user_pwd.objects.filter(user=u)
+                if len(user_pwd) > 0:
+                    update_user_pwd = Db_user_pwd.objects.get(user=u)
+                    update_user_pwd.pwd = p
+                    update_user_pwd.save()
+                else:
+                    newpwd = Db_user_pwd(user=u,pwd=str(p))
+                    newpwd.save()
             except Exception as e:
                 print("change pwd save failed {}".format(str(e)))
             # save pwd done

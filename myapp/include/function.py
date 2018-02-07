@@ -559,9 +559,11 @@ def get_mypd():
 
 def get_prefix(grant_dbtag):
     if 'aliyun' in grant_dbtag:
-        return '-'.join(grant_dbtag.split('-')[0:3])
+        return '-'.join(grant_dbtag.split('-')[0:4])
     if 'office' in grant_dbtag:
-        return '-'.join(grant_dbtag.split('-')[0:2])
+        return '-'.join(grant_dbtag.split('-')[0:3])
+    if 'aws' in grant_dbtag:
+        return '-'.join(grant_dbtag.split('-')[0:4])
 
 def add_new_priv(dbtool, grant_privs, grant_db, grant_tables, grant_user, grant_ip, grant_user_pwd, idc):
     grant_tbs=[tb.strip() for tb in grant_tables.split(',') if len(tb.strip()) > 0]
@@ -1124,6 +1126,13 @@ def confirm_delete(dbtool, grant_id, hosttag):
         updline = Db_privileges.objects.get(grant_dbtag=dbtag, grant_privs=pline.grant_privs, grant_ip=pline.grant_ip, grant_user=pline.grant_user, grant_user_pwd= pline.grant_user_pwd, grant_status=1)
         updline.grant_status = 0
         updline.save()
+        #-- update db_priv_log.grant_status='Deleted'
+        try:
+            logline=DB_priv_log.objects.get(fkid=pline.id)
+            logline.priv_status = 'deleted'
+            logline.save()
+        except Exception as e:
+            print(">>>>Update: Priv_log.grant_status='Deleted' error: %s" %e)
     # ---
     for ip in now_ips:
         ip = ip.replace('*', '%')

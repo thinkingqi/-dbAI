@@ -24,6 +24,8 @@ class Db_instance(models.Model):
     port = models.CharField(max_length=10)
     role =  models.CharField(max_length=30,choices=read_write, )
     db_type = models.CharField(max_length=30,default='mysql')
+    eip = models.CharField(max_length=80, default='')
+    comment = models.CharField(max_length=300, default='')
     def __unicode__(self):
         return u'%s %s %s' % (self.ip, self.role, self.db_type)
     class Meta:
@@ -32,7 +34,7 @@ class Db_instance(models.Model):
 
 # db_name match db_instance then db_instance have role for write or read or read_write
 class Db_name (models.Model):
-    dbtag = models.CharField(max_length=30,unique=True)
+    dbtag = models.CharField(max_length=80,unique=True)
     dbname = models.CharField(max_length=30)
     instance = models.ManyToManyField(Db_instance)
     account = models.ManyToManyField(User)
@@ -159,7 +161,7 @@ class Incep_error_log(models.Model):
     finish_time = models.DateTimeField()
 
 class MySQL_monitor(models.Model):
-    tag = models.CharField(max_length=20)
+    tag = models.CharField(max_length=80)
     monitor = models.SmallIntegerField(default=1)
     instance = models.OneToOneField(Db_instance)
     # instance = models.ForeignKey(Db_instance)
@@ -188,16 +190,16 @@ class Db_privileges(models.Model):
     id=models.AutoField(primary_key=True)
     grant_dbtag=models.CharField(max_length=50, db_index=True)
     grant_user=models.CharField(max_length=30)
-    grant_ip=models.CharField(max_length=150)
+    grant_ip=models.CharField(max_length=200)
     grant_privs=models.CharField(max_length=300)
-    grant_db=models.CharField(max_length=100)
+    grant_db=models.CharField(max_length=200)
     grant_tables=models.CharField(max_length=1000)
     grant_user_pwd=models.CharField(max_length=80)
     create_time=models.DateTimeField(auto_now=True, db_index=True)
     modify_time=models.DateTimeField(auto_now_add=True)
     grant_status=models.SmallIntegerField(default=1)  # 1:active 0:inactive
     grant_comment=models.CharField(max_length=200)
-    db_name=models.ForeignKey(Db_name, on_delete=models.SET('deleted'))
+    db_name=models.ForeignKey(Db_name, on_delete=models.SET('-1'))
     def __unicode__(self):
         return self.db_name.dbtag
 
@@ -206,7 +208,8 @@ class DB_priv_log(models.Model):
     uname=models.CharField(max_length=30,db_index=True)
     action=models.CharField(max_length=30)
     create_time=models.DateTimeField(auto_now=True, db_index=True)
-    fkid=models.ForeignKey(Db_privileges, on_delete=models.SET('deleted'))
+    fkid=models.ForeignKey(Db_privileges, on_delete=models.SET('-1'))
+    priv_status=models.CharField(max_length=20, default='online')
     def __unicode__(self):
         return self.fkid.id, self.fkid.grant_dbtag
 
@@ -215,4 +218,5 @@ class Db_user_pwd(models.Model):
     user = models.OneToOneField(User)
     pwd=models.CharField(max_length=30)
     def __unicode__(self):
-        return self.user.username, self.pwd
+        #return self.user.username, self.pwd
+        return  u'%s %s' % ( self.user.username,self.pwd)

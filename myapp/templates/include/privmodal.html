@@ -186,7 +186,7 @@
         $("#addNewPrivModal input[name='grant_user_add']").val(myrow.eq(2).html()).attr("readonly","readonly");
         $("#addNewPrivModal input[name='grant_host_add']").val(getStr(myrow.eq(3).html()));
         //$("#addNewPrivModal input[name='grant_db_add']").val(myrow.eq(5).html()).attr("readonly","readonly");
-        $("#addNewPrivModal input[name='grant_db_add']").val(myrow.eq(5).html());
+        $("#addNewPrivModal input[name='grant_db_add']").val(getStr(myrow.eq(5).html()));
         $("#addNewPrivModal input[name='grant_tbs_add']").val(getStr(myrow.eq(6).html()));
         $("#addNewPrivModal input[name='remark']").val(myrow.eq(11).html());
         var privs=myrow.eq(4).html().split(',');
@@ -315,7 +315,7 @@
 <!--------for update_pwd button ->  modal: update_pwd_modal ------>
 <!--------for check_status button ->  modal: check_status_modal -->
 <div class="modal fade" id="checkStatusModal" tabindex="-1" role="dialog" aria-labelledby="checkStatusModalLabel" data-backdrop="static" data-keyboard="false">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog" role="document" style="width:950px;">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
@@ -341,14 +341,17 @@
         console.log($(this).parent().parent().attr("id"));
         console.log($(this).parent().parent().children().eq(1).html());
         var myrow=$(this).parent().parent().children();
-        var instanceaddr="<tr><th><strong>数据库地址: </strong></th><th>"+myrow.eq(1).html()+"[ {{ addr }} ]</th></tr>";
+        var addr="{{ addr }}";
+        //var instanceaddr="<tr><th><strong>数据库地址: </strong></th><th>"+myrow.eq(1).html()+"[ {#{ addr }#} ]</th></tr>";
+        var instanceaddr="<tr><th><strong>数据库地址: </strong></th><th>[DB地址: "+addr.split(':')[1]+"端口:"+addr.split(':')[2]+"]</th></tr>";
         var grantuser="<tr><th><strong>授权用户: </strong></th><th>"+myrow.eq(2).html()+"</th></tr>";
         var grantuserpwd="<tr><th><strong>用户密码: </strong></th><th>"+myrow.eq(7).html()+"</th></tr>";
         var granthost="<tr><th><strong>授权IP: </strong></th><th>"+getStr(myrow.eq(3).html())+"</th></tr>";
+        var grantdb="<tr><th><strong>数据库: </strong></th><th>"+getStr(myrow.eq(5).html())+"</th></tr>";
         var granttbs="<tr><th><strong>授权表: </strong></th><th>"+getStr(myrow.eq(6).html())+"</th></tr>";
         var grantprivs="<tr><th><strong>权限: </strong></th><th>"+getStr(myrow.eq(4).html())+"</th></tr>";
         var grantremark="<tr><th><strong>备注: </strong></th><th>"+myrow.eq(11).html()+"</th></tr>";
-        var check_status="<table class='table table-bordered'>"+instanceaddr+grantuser+grantuserpwd+granthost+granttbs+grantprivs+grantremark+"</table>";
+        var check_status="<table class='table table-bordered'>"+instanceaddr+grantuser+grantuserpwd+granthost+grantdb+granttbs+grantprivs+grantremark+"</table>";
         $("#check_priv_status").html(check_status);
         //$("#modifyModal input[name='from[]']").val(myrow.eq(1).html());
         //$("#modifyModal input[name='to[]']").val(myrow.eq(1).html());

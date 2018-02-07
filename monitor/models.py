@@ -3,7 +3,7 @@ from django.db import models
 import django.utils.timezone as timezone
 # Create your models here.
 class Mysql_processlist(models.Model):
-    db_ip = models.CharField(max_length=20)
+    db_ip = models.CharField(max_length=80)
     db_port = models.SmallIntegerField()
     conn_id = models.CharField(max_length=30)
     user = models.CharField(max_length=32)
@@ -18,7 +18,7 @@ class Mysql_processlist(models.Model):
         db_table = 'mysql_processlist'
 
 class Mysql_replication(models.Model):
-    db_ip = models.CharField(max_length=20)
+    db_ip = models.CharField(max_length=80)
     db_port = models.SmallIntegerField()
     is_master = models.SmallIntegerField(default=0)
     is_slave = models.SmallIntegerField(default=0)
@@ -41,7 +41,7 @@ class Mysql_replication(models.Model):
         unique_together = ("db_ip", "db_port")
 
 class Mysql_replication_his(models.Model):
-    db_ip = models.CharField(max_length=20)
+    db_ip = models.CharField(max_length=80)
     db_port = models.SmallIntegerField()
     is_master = models.SmallIntegerField(default=0)
     is_slave = models.SmallIntegerField(default=0)
@@ -65,7 +65,7 @@ class Mysql_replication_his(models.Model):
 
 
 class MysqlConnected(models.Model):
-    db_ip = models.CharField(max_length=30)
+    db_ip = models.CharField(max_length=80)
     db_port = models.CharField(max_length=10)
     connect_server = models.CharField(max_length=100)
     connect_user = models.CharField(max_length=50, blank=True, null=True)
@@ -77,7 +77,7 @@ class MysqlConnected(models.Model):
         index_together = [["db_ip", "db_port", "create_time"], ]
 
 class MysqlStatus(models.Model):
-    db_ip = models.CharField(max_length=30)
+    db_ip = models.CharField(max_length=80)
     db_port = models.CharField(max_length=10)
     connect = models.SmallIntegerField(default=0)
     role = models.CharField(max_length=30,default=-1)
@@ -171,7 +171,7 @@ class MysqlStatus(models.Model):
         unique_together = ("db_ip", "db_port")
 
 class MysqlStatusHis(models.Model):
-    db_ip = models.CharField(max_length=30)
+    db_ip = models.CharField(max_length=80)
     db_port = models.CharField(max_length=10)
     connect = models.SmallIntegerField(default=0)
     role = models.CharField(max_length=30,default=-1)
@@ -268,7 +268,7 @@ class MysqlStatusHis(models.Model):
 
 # active sql,long sql,slave delay,slave stop,connections
 class Alarm(models.Model):
-    db_ip = models.CharField(max_length=30)
+    db_ip = models.CharField(max_length=80)
     db_port = models.CharField(max_length=10)
     alarm_type = models.CharField(max_length=30)
     send_mail =models.SmallIntegerField(default=0)
@@ -279,7 +279,7 @@ class Alarm(models.Model):
 
 
 class AlarmTemp(models.Model):
-    db_ip = models.CharField(max_length=30)
+    db_ip = models.CharField(max_length=80)
     db_port = models.CharField(max_length=10)
     alarm_type = models.CharField(max_length=30)
     create_time = models.DateTimeField(db_index=True,default=timezone.now)

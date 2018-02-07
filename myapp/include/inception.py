@@ -345,7 +345,15 @@ def record_task(request,sqltext,dbtag,specify,ifbackup):
     create_time = datetime.datetime.now()
     update_time = datetime.datetime.now()
     status='NULL'
-    mytask = Task(user=username,sqltext=sqltext,create_time=create_time,update_time=update_time,dbtag=dbtag,status=status,specification=specify,backup_status=ifbackup)
+    # for dev/test/ontest set status >> if task.status=='check passed': task.status='appointed'
+    sche_time='2199-01-01 00:00:00'
+    env_str = func.get_prefix(dbtag)
+    env_list = env_str.split('-')
+    if 'dev' in env_list or 'test' in env_list or 'ontest' in env_list:
+        status = 'appointed'
+        sche_time = datetime.datetime.now()
+    # for dev/test/ontest set status done, Task line create add sche_time
+    mytask = Task(user=username,sqltext=sqltext,create_time=create_time,update_time=update_time,dbtag=dbtag,status=status,specification=specify,backup_status=ifbackup,sche_time=sche_time)
     mytask.save()
     # add for new task sendmail
     # try:
